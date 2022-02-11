@@ -65,10 +65,16 @@ Object.defineProperties(Array.prototype, {
     }
 });
 
+function isInt(value) {
+    let x = parseFloat(value);
+    return !isNaN(value) && (x | 0) === x;
+}
+
 module.exports = {
     setEnv,
     getEnv,
     capitalizeFirstLetter,
     getDayOfWeek,
     randomInt,
+    isInt
 };

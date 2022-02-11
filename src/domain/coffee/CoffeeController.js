@@ -7,10 +7,22 @@ const {sendMessage} = require("../telegraf_bot/TelegrafBot");
 
 async function win(username, params) {
     try{
+        let value = 1;
+        if(params.startsWith('x')){
+            let parsedValue = parseValue(params);
+            value = parsedValue.value;
+            params = parsedValue.params;
+        }
+
+        if(!utils.isInt(value) || value <= 0){
+            return "Fail!! Sai cú pháp";
+        }
+
         if(!params){
             return "Fail!! Sai cú pháp";
         }
         params = params.replace(/, +/g, ',').trim();
+
         let split = params.split(' win ');
         if(split.length !== 2){
             logger.warn("win fail! " + params);
@@ -25,6 +37,13 @@ async function win(username, params) {
         if(winnerDomains.length > 4){
             return "Fail!! Nhiều người quá rồi!";
         }
+
+        for (let i = 0; i < winnerDomains.length; i++) {
+            if(loserDomains.indexOf(winnerDomains[i]) >= 0){
+                return "Fail! Một người không thể ở 2 đội"
+            }
+        }
+
         for (let i = 0; i < winnerDomains.length; i++) {
             winnerDomains[i] = winnerDomains[i].toLowerCase();
         }
@@ -44,21 +63,21 @@ async function win(username, params) {
         }
         for (let i = 0; i < winners.length; i++) {
             let winner = winners[i];
-            winner.weeklyWin++;
-            winner.win++;
-            winner.total++;
+            winner.weeklyWin += value;
+            winner.win += value;
+            winner.total += value;
             await winner.save();
         }
         for (let i = 0; i < losers.length; i++) {
             let loser = losers[i];
-            loser.weeklyLose++;
-            loser.lose++;
-            loser.total--;
+            loser.weeklyLose += value;
+            loser.lose += value;
+            loser.total -= value;
             await loser.save();
         }
-        await googleSheetWorker.winMatch(winners, losers);
+        await googleSheetWorker.winMatch(winners, losers, value);
         logger.info(username + " reported: " + winnerDomains + " win " + loserDomains);
-        return winnerDomains + " vừa win " + loserDomains;
+        return winnerDomains + " vừa win" +(value > 1? "x" + value + " ": " ") + loserDomains;
     } catch (e) {
         logger.error("winMatch exception: " + params + ", " + e);
         return "Something wrongs!";
@@ -70,11 +89,22 @@ async function forcePay(username, params){
         if (!params) {
             return "Fail!! Sai cú pháp";
         }
+
         params = params.replace(/, +/g, ',').replace(/ +/g, ' ').trim();
         let split = params.split(' pay ');
         if(split.length < 2){
             return "Fail!! Sai cú pháp";
         }
+
+        if(split[0].startsWith('x')){
+            let firstSpace = split[0].search(' ');
+            if(firstSpace <= 0){
+                return "Fail!! Sai cú pháp";
+            }
+            split[1] = split[0].slice(0, firstSpace + 1) + split[1];
+            split[0] = split[0].slice(firstSpace + 1);
+        }
+
         return await pay(split[0], split[1]);
     } catch (e) {
         logger.error("forcePay exception: " + params + ", " + e);
@@ -84,9 +114,21 @@ async function forcePay(username, params){
 
 async function pay(username, params) {
     try {
-        if (!params) {
+        let value = 1;
+        if(params.startsWith('x')){
+            let parsedValue = parseValue(params);
+            value = parsedValue.value;
+            params = parsedValue.params;
+        }
+
+        if(!utils.isInt(value) || value <= 0){
             return "Fail!! Sai cú pháp";
         }
+
+        if(!params){
+            return "Fail!! Sai cú pháp";
+        }
+
         let payer = await Player.findOne({username: username});
         if (!payer) {
             return "Permission denied! Liên hệ admin!";
@@ -116,7 +158,7 @@ async function pay(username, params) {
         let payValues = Array(paidPlayers.length);
         let totalPay = 0;
         for (let i = 0; i < paidPlayers.length; i++) {
-            let payValue = paidPlayerDomains.count(paidPlayers[i].domain);
+            let payValue = paidPlayerDomains.count(paidPlayers[i].domain) * value;
             payValues[i] = payValue;
             totalPay += payValue;
         }
@@ -153,11 +195,49 @@ async function pay(username, params) {
     }
 }
 
-async function gift(username, params) {
-    try{
+async function forceGift(username, params){
+    try {
         if (!params) {
             return "Fail!! Sai cú pháp";
         }
+        params = params.replace(/, +/g, ',').replace(/ +/g, ' ').trim();
+        let split = params.split(' gift ');
+        if(split.length < 2){
+            return "Fail!! Sai cú pháp";
+        }
+
+        if(split[0].startsWith('x')){
+            let firstSpace = split[0].search(' ');
+            if(firstSpace <= 0){
+                return "Fail!! Sai cú pháp";
+            }
+            split[1] = split[0].slice(0, firstSpace + 1) + split[1];
+            split[0] = split[0].slice(firstSpace + 1);
+        }
+        return await gift(split[0], split[1]);
+    } catch (e) {
+        logger.error("forceGift exception: " + params + ", " + e);
+        return "Something wrongs!";
+    }
+}
+
+async function gift(username, params) {
+    try{
+        let value = 1;
+        if(params.startsWith('x')){
+            let parsedValue = parseValue(params);
+            value = parsedValue.value;
+            params = parsedValue.params;
+        }
+
+        if(!utils.isInt(value) || value <= 0){
+            return "Fail!! Sai cú pháp";
+        }
+
+        if(!params){
+            return "Fail!! Sai cú pháp";
+        }
+
         let gifter = await Player.findOne({username: username});
         if (!gifter) {
             return "Permission denied! Liên hệ admin!";
@@ -187,9 +267,9 @@ async function gift(username, params) {
         let giftValues = Array(giftedPlayers.length);
         let totalGift = 0;
         for (let i = 0; i < giftedPlayers.length; i++) {
-            let payValue = giftedPlayerDomains.count(giftedPlayers[i].domain);
-            giftValues[i] = payValue;
-            totalGift += payValue;
+            let giftValue = giftedPlayerDomains.count(giftedPlayers[i].domain) * value;
+            giftValues[i] = giftValue;
+            totalGift += giftValue;
         }
 
         gifter.gift += totalGift;
@@ -197,25 +277,25 @@ async function gift(username, params) {
         await gifter.save();
 
         for (let i = 0; i < giftedPlayers.length; i++) {
-            let paidPlayer = giftedPlayers[i];
-            paidPlayer.gifted += giftValues[i];
-            paidPlayer.total += giftValues[i];
-            await paidPlayer.save();
+            let giftedPlayer = giftedPlayers[i];
+            giftedPlayer.gifted += giftValues[i];
+            giftedPlayer.total += giftValues[i];
+            await giftedPlayer.save();
         }
         await googleSheetWorker.gift(gifter, giftedPlayers);
         logger.info(username + " reported: " + username + " gift " + giftedPlayerDomains);
-        let paidPlayerLog = "";
+        let giftedPlayerLog = "";
         for (let i = 0; i < giftedPlayers.length; i++) {
             if(i !== 0){
-                paidPlayerLog += ', ';
+                giftedPlayerLog += ', ';
             }
             if(giftValues[i] > 1){
-                paidPlayerLog += giftedPlayers[i].username + " x" + giftValues[i];
+                giftedPlayerLog += giftedPlayers[i].username + " x" + giftValues[i];
             } else{
-                paidPlayerLog += giftedPlayers[i].username;
+                giftedPlayerLog += giftedPlayers[i].username;
             }
         }
-        return username + " vừa gift cho " + paidPlayerLog;
+        return username + " vừa gift cho " + giftedPlayerLog;
     } catch (e) {
         logger.error("gift exception: " + params + ", " + e);
         return "Something wrongs!";
@@ -359,7 +439,7 @@ async function renewDay() {
             await clearWeek();
         }
         await googleSheetWorker.renewDay(isNewWeek);
-        await logger.info( "Day " + date + "/" + month + " has been renewed.");
+        await bot.notify( "Day " + date + "/" + month + " has been renewed.");
         if(isNewWeek){
             await bot.sendMessage(process.env.GROUP_CHAT_ID, "Tuần mới bắt đầu rồi gỡ thôi nào!!");
         }
@@ -476,6 +556,20 @@ async function updateTotal(username, params){
     }
 }
 
+async function updateAllTotal(username){
+    try{
+        let players = await Player.find();
+
+        await googleSheetWorker.updatePlayerTotals(players);
+
+        logger.info(username + " reported: " + username + " updateAll");
+        return username + " vừa update số liệu của tất cả";
+    } catch (e) {
+        logger.error("updateTotal exception: " + e);
+        return "Something wrongs!";
+    }
+}
+
 async function reset(username) {
     try{
         const players = await Player.find({});
@@ -485,7 +579,16 @@ async function reset(username) {
             player.weeklyWin = 0;
             player.weeklyLose = 0;
             player.weeklyPay = 0;
+            player.weeklyPaid = 0;
+            player.pay = 0;
+            player.paid = 0;
+            player.gift = 0;
+            player.gifted = 0;
+            player.win = 0;
+            player.lose = 0;
             player.total = 0;
+            player.added = 0;
+            player.deducted = 0;
             await player.save();
         }
         await googleSheetWorker.updatePlayerTotals(players);
@@ -498,16 +601,29 @@ async function reset(username) {
     }
 }
 
+function parseValue(params){
+    let result = {value: 0, params: params};
+    let firstSpace = params.search(' ');
+    if(firstSpace <= 0){
+        return result;
+    }
+    result.value = params.slice(1, firstSpace) - 0;
+    result.params = params.slice(firstSpace + 1);
+    return result;
+}
+
 
 module.exports = {
     win,
     pay,
     forcePay,
     gift,
+    forceGift,
     renewDay,
     add,
     deduct,
     weekSummary,
     updateTotal,
-    reset
+    updateAllTotal,
+    reset,
 };

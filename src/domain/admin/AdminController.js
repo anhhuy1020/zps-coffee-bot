@@ -7,7 +7,11 @@ function getAdmin() {
 }
 
 async function reloadAdmin() {
-    _instance = await AdminModel.findById("61c5967e59ce55c52ab4a582").then((admin) => _instance = admin);
+    _instance = await AdminModel.findOne();
+    if(!_instance){
+        _instance = new AdminModel();
+        _instance.save();
+    }
     return "Reload Admin success"
 }
 

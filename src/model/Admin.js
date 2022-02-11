@@ -3,7 +3,7 @@ const Schema = mongoose.Schema;
 
 const schema = new Schema({
     admins: { type: Array},
-    lastPlayerIdx: { type: Number, default: 0 }
+    lastPlayerIdx: { type: Number, default: 1 }
 });
 
 module.exports = mongoose.model('Admin', schema);

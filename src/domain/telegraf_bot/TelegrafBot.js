@@ -24,10 +24,9 @@ function addCommand(cmd, handler, middleware, description = '') {
             return;
         }
         let username = ctx.update.message.from.username.toLowerCase();
-        // bot.telegram.sendMessage(-1001592702275, "a");
 
         if(typeof middleware === 'function'){
-            let check = await middleware(username, ctx.update.message.chat.id);
+            let check = await middleware(username, ctx.update.message.from.id);
             if(!check.permission){
                 ctx.reply(check.msg);
                 return;
@@ -66,9 +65,10 @@ function launchBot(botToken){
             let command = commandList[i];
             msg += '/' + command.cmd + ' : ' + command.description;
             if(i !== commandList.length - 1){
-                msg += "\n";
+                msg += "\n\n";
             }
         }
+
         ctx.reply(msg)
     });
 
@@ -78,9 +78,14 @@ function launchBot(botToken){
 
     bot.command('setGroup', (ctx) => {
         let chatId = ctx.update.message.chat.id;
+        if(ctx.update.message.from.id != process.env.SUPER_ADMIN_ID){
+            ctx.reply("Bạn không phải super Admin")
+            return;
+        }
         utils.setEnv("GROUP_CHAT_ID", chatId);
         process.env.GROUP_CHAT_ID = chatId;
         ctx.reply("SET GROUP_CHAT_ID = " + chatId);
+        notify("SET GROUP_CHAT_ID = " + chatId);
     });
 
     bot.command('release', (ctx) => {
@@ -88,8 +93,8 @@ function launchBot(botToken){
     });
 
     bot.command('test', (ctx) => {
-        logger.info("test ne");
-        logger.error("test ne");
+        ctx.reply(ctx.update.message.from);
+        console.log("ctx.update.message.from == " + JSON.stringify(ctx.update.message.from));
     });
 }
 

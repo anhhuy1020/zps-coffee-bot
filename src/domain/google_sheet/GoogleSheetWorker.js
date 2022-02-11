@@ -150,9 +150,10 @@ async function updateTotal(player) {
  *
  * @param winners[{Player}]
  * @param losers[{Player}]
+ * @param value
  * @returns {Promise<void>}
  */
-async function winMatch(winners, losers) {
+async function winMatch(winners, losers, value) {
     let minCol = 2; //hardcode :D
     let maxCol = null;
     for (let i = 0; i < winners.length; i++) {
@@ -170,8 +171,8 @@ async function winMatch(winners, losers) {
         let winnerIdx = winners[i].sheetIdx - minCol;
         let loserIdx = losers[i].sheetIdx - minCol;
 
-        updateValues[winnerIdx] = 1;
-        updateValues[loserIdx] = -1;
+        updateValues[winnerIdx] = value;
+        updateValues[loserIdx] = -value;
     }
 
     let minColName = getColumnName(minCol);
