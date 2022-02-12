@@ -26,7 +26,7 @@ function addCommand(cmd, handler, middleware, description = '') {
         let username = ctx.update.message.from.username.toLowerCase();
 
         if(typeof middleware === 'function'){
-            let check = await middleware(username, ctx.update.message.from.id);
+            let check = await middleware(username, ctx.update.message.from.id, ctx.update.message.chat.id);
             if(!check.permission){
                 ctx.reply(check.msg);
                 return;

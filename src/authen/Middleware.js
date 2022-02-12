@@ -1,7 +1,7 @@
 const adminController = require('../domain/admin/AdminController');
 const Player = require('../model/Player');
 
-async function checkSuperAdmin(username, id){
+async function checkSuperAdmin(username, id, groupId){
     let superAdmin = process.env.SUPER_ADMIN_ID;
     if(id != superAdmin){
         return {permission: false, msg: "Bạn không phải super admin!"};
@@ -17,9 +17,9 @@ async function checkAdmin(username){
     return {permission: true};
 }
 
-async function checkPlayer(username, groupId){
+async function checkPlayer(username, id, groupId){
     let GROUP_CHAT_ID = process.env.GROUP_CHAT_ID;
-    if(groupId != GROUP_CHAT_ID && groupId != process.env.SUPER_ADMIN_ID){
+    if(groupId != GROUP_CHAT_ID && id != process.env.SUPER_ADMIN_ID){
         return {permission: false, msg: "Không được đi cửa sau, hãy chat vào group!"};
     }
     let player = await Player.findOne({username: username});
