@@ -4,6 +4,7 @@ const bot = require('../telegraf_bot/TelegrafBot');
 const utils = require('../../utils/Utils');
 const logger = require('../../utils/Logger');
 const {sendMessage} = require("../telegraf_bot/TelegrafBot");
+const {isInt} = require("../../utils/Utils");
 
 async function win(username, params) {
     try{
@@ -21,7 +22,7 @@ async function win(username, params) {
         if(!params){
             return "Fail!! Sai cú pháp";
         }
-        params = params.replace(/, +/g, ',').trim();
+        params = params.replace(/, +/g, ',').replace(/@/g, '').trim();
 
         let split = params.split(' win ');
         if(split.length !== 2){
@@ -51,8 +52,8 @@ async function win(username, params) {
             loserDomains[i] = loserDomains[i].toLowerCase();
         }
 
-        let winners = await Player.find({domain: { $in: winnerDomains}});
-        let losers = await Player.find({domain: { $in: loserDomains}});
+        let winners = await Player.find({$or: [{domain: { $in: winnerDomains}}, {username: {$in: winnerDomains}}]});
+        let losers = await Player.find({$or: [{domain: { $in: loserDomains}}, {username: {$in: loserDomains}}]});
         if(winners.length !== winnerDomains.length){
             logger.warn("Win fail! params = " + params);
             return "Fail!! Kiểm tra lại domain";
@@ -61,6 +62,13 @@ async function win(username, params) {
             logger.warn("Win fail! params = "  + params);
             return "Fail!! Kiểm tra lại domain";
         }
+
+        for (let i = 0; i < winners.length; i++) {
+            if(loserDomains.indexOf(winners[i].domain) >= 0 || loserDomains.indexOf(winners[i].username) >= 0){
+                return "Fail! Một người không thể ở 2 đội"
+            }
+        }
+
         for (let i = 0; i < winners.length; i++) {
             let winner = winners[i];
             winner.weeklyWin += value;
@@ -76,8 +84,18 @@ async function win(username, params) {
             await loser.save();
         }
         await googleSheetWorker.winMatch(winners, losers, value);
-        logger.info(username + " reported: " + winnerDomains + " win " + loserDomains);
-        return winnerDomains + " vừa win" +(value > 1? "x" + value + " ": " ") + loserDomains;
+        let logWinners = "";
+        let logLosers = "";
+        for (let i = 0; i < winners.length; i++) {
+            if(i !== 0){
+                logWinners += ", ";
+                logLosers += ", ";
+            }
+            logWinners += "@" + winners[i].username;
+            logLosers += "@" + losers[i].username;
+        }
+        logger.info(username + " reported: " + winnerDomains + " win " + loserDomains + " x" + value);
+        return logWinners + " vừa win " + logLosers + (value > 1? " " + value + " ly": "");
     } catch (e) {
         logger.error("winMatch exception: " + params + ", " + e);
         return "Something wrongs!";
@@ -133,14 +151,11 @@ async function pay(username, params) {
         if (!payer) {
             return "Permission denied! Liên hệ admin!";
         }
-        params = params.replace(/, +/g, ',').trim();
+        params = params.replace(/, +/g, ',').replace(/@/g, '').trim();
 
         let paidPlayerDomains = params.split(",");
         if(paidPlayerDomains.length <= 0){
             return "Người được pay không hợp lệ!";
-        }
-        if (paidPlayerDomains.indexOf(username) >= 0) {
-            return "Không thể pay cho chính mình!";
         }
         if (paidPlayerDomains.length > 4) {
             return "Pay từ từ thôi bạn êi!"
@@ -148,8 +163,10 @@ async function pay(username, params) {
         for (let i = 0; i < paidPlayerDomains.length; i++) {
             paidPlayerDomains[i] = paidPlayerDomains[i].toLowerCase();
         }
-
-        let paidPlayers = await Player.find({domain: {$in: paidPlayerDomains}});
+        if (paidPlayerDomains.indexOf(username) >= 0 || paidPlayerDomains.indexOf(payer.domain) >= 0) {
+            return "Không thể pay cho chính mình!";
+        }
+        let paidPlayers = await Player.find({$or: [{domain: {$in: paidPlayerDomains}}, {username: {$in:  paidPlayerDomains}}]});
         if (paidPlayers.length <= 0) {
             logger.warn("Pay fail! params = " + params + ", paidPlayers = " + paidPlayerDomains);
             return "Fail!! Kiểm tra lại domain";
@@ -182,13 +199,10 @@ async function pay(username, params) {
             if(i !== 0){
                 paidPlayerLog += ', ';
             }
-            if(payValues[i] > 1){
-                paidPlayerLog += paidPlayers[i].username + " x" + payValues[i];
-            } else{
-                paidPlayerLog += paidPlayers[i].username;
-            }
+
+            paidPlayerLog += "@" + paidPlayers[i].username + " " + payValues[i] + " ly";
         }
-        return username + " vừa pay cho " + paidPlayerLog;
+        return "@" + username + " vừa pay cho " + paidPlayerLog;
     } catch (e) {
         logger.error("Pay exception: " + params + ", " + e);
         return "Something wrongs!";
@@ -242,14 +256,11 @@ async function gift(username, params) {
         if (!gifter) {
             return "Permission denied! Liên hệ admin!";
         }
-        params = params.replace(/, +/g, ',').trim();
+        params = params.replace(/, +/g, ',').replace(/@/g, '').trim();
 
         let giftedPlayerDomains = params.split(",");
         if(giftedPlayerDomains.length <= 0){
             return "Người được gift không hợp lệ!";
-        }
-        if (giftedPlayerDomains.indexOf(username) >= 0) {
-            return "Không thể gift cho chính mình!";
         }
         if (giftedPlayerDomains.length > 4) {
             return "Gift ít thôi bạn êi!"
@@ -257,8 +268,11 @@ async function gift(username, params) {
         for (let i = 0; i < giftedPlayerDomains.length; i++) {
             giftedPlayerDomains[i] = giftedPlayerDomains[i].toLowerCase();
         }
+        if (giftedPlayerDomains.indexOf(username) >= 0 || giftedPlayerDomains.indexOf(gifter.domain) >= 0) {
+            return "Không thể gift cho chính mình!";
+        }
 
-        let giftedPlayers = await Player.find({domain: {$in: giftedPlayerDomains}});
+        let giftedPlayers = await Player.find({$or: [{domain: {$in: giftedPlayerDomains}}, {username: {$in:  giftedPlayerDomains}}]});
         if (giftedPlayers.length <= 0) {
             logger.warn("Gift fail! params = " + params);
             return "Fail!! Kiểm tra lại domain";
@@ -289,13 +303,9 @@ async function gift(username, params) {
             if(i !== 0){
                 giftedPlayerLog += ', ';
             }
-            if(giftValues[i] > 1){
-                giftedPlayerLog += giftedPlayers[i].username + " x" + giftValues[i];
-            } else{
-                giftedPlayerLog += giftedPlayers[i].username;
-            }
+            giftedPlayerLog += "@" + giftedPlayers[i].username + " " + giftValues[i] + " ly";
         }
-        return username + " vừa gift cho " + giftedPlayerLog;
+        return "@" + username + " vừa gift cho " + giftedPlayerLog;
     } catch (e) {
         logger.error("gift exception: " + params + ", " + e);
         return "Something wrongs!";
@@ -308,9 +318,27 @@ async function add(username, params) {
             return "Fail!! Sai cú pháp";
         }
 
-        params = params.replace(/, +/g, ',').replace(/ +/, ' ').trim();
+        params = params.replace(/, +/g, ',').replace(/ +/, ' ').replace(/@/g, '').trim();
 
         let split = params.split(' ');
+
+        if(split.length > 2){
+            logger.warn("Add fail! params = " + params);
+            return "Fail!! Sai cú pháp";
+        }
+
+        let addValue = split.length === 2? split[1]: 1;
+        if(!utils.isInt(addValue)){
+            logger.warn("Add fail! params = " + params);
+            return "Fail!! Sai cú pháp";
+        }
+
+        addValue = addValue - 0;
+
+        if(addValue <= 0){
+            logger.warn("Add fail! params = " + params);
+            return "Fail!! Sai cú pháp";
+        }
 
         let addedPlayerDomains = split[0].split(",");
         if(addedPlayerDomains.length <= 0){
@@ -323,24 +351,10 @@ async function add(username, params) {
             addedPlayerDomains[i] = addedPlayerDomains[i].toLowerCase();
         }
 
-        let addedPlayers = await Player.find({domain: {$in: addedPlayerDomains}});
+        let addedPlayers = await Player.find({$or: [{domain: {$in: addedPlayerDomains}}, {username: {$in:  addedPlayerDomains}}]});
         if (addedPlayers.length <= 0) {
             logger.warn("Add fail! params = " + params);
             return "Fail!! Kiểm tra lại domain";
-        }
-
-
-        let addValue = split.length > 1? split[1]: 1;
-        if(isNaN(addValue)){
-            logger.warn("Add fail! params = " + params);
-            return "Fail!! Sai cú pháp";
-        }
-
-        addValue = addValue - 0;
-
-        if(addValue <= 0){
-            logger.warn("Add fail! params = " + params);
-            return "Fail!! Sai cú pháp";
         }
 
         for (let i = 0; i < addedPlayers.length; i++) {
@@ -356,9 +370,9 @@ async function add(username, params) {
             if(i !== 0){
                 addPlayerLog += ', ';
             }
-            addPlayerLog += addedPlayers[i].username;
+            addPlayerLog += "@" + addedPlayers[i].username;
         }
-        return username + " vừa add cho " + addPlayerLog + " " + addValue + " ly";
+        return "Admin @" + username + " vừa add cho " + addPlayerLog + " " + addValue + " ly";
     } catch (e) {
         logger.error("add exception: " + params + ", " + e);
         return "Something wrongs!";
@@ -371,9 +385,22 @@ async function deduct(username, params) {
             return "Fail!! Sai cú pháp";
         }
 
-        params = params.replace(/, +/g, ',').replace(/ +/, ' ').trim();
+        params = params.replace(/, +/g, ',').replace(/ +/, ' ').replace(/@/g, '').trim();
 
         let split = params.split(' ');
+
+        let deductValue = split.length > 1? split[1]: 1;
+        if(!utils.isInt(deductValue)){
+            logger.warn("Deduct fail! params = " + params);
+            return "Fail!! Sai cú pháp";
+        }
+
+        deductValue = deductValue - 0;
+
+        if(deductValue <= 0){
+            logger.warn("Add fail! params = " + params);
+            return "Fail!! Sai cú pháp";
+        }
 
         let deductedPlayerDomains = split[0].split(",");
         if(deductedPlayerDomains.length <= 0){
@@ -386,24 +413,10 @@ async function deduct(username, params) {
             deductedPlayerDomains[i] = deductedPlayerDomains[i].toLowerCase();
         }
 
-        let deductedPlayers = await Player.find({domain: {$in: deductedPlayerDomains}});
+        let deductedPlayers = await Player.find({$or: [{domain: {$in: deductedPlayerDomains}}, {username: {$in:  deductedPlayerDomains}}]});
         if (deductedPlayers.length <= 0) {
             logger.warn("Deduct fail! params = " + params);
             return "Fail!! Kiểm tra lại domain";
-        }
-
-
-        let deductValue = split.length > 1? split[1]: 1;
-        if(isNaN(deductValue)){
-            logger.warn("Deduct fail! params = " + params);
-            return "Fail!! Sai cú pháp";
-        }
-
-        deductValue = deductValue - 0;
-
-        if(deductValue <= 0){
-            logger.warn("Add fail! params = " + params);
-            return "Fail!! Sai cú pháp";
         }
 
         for (let i = 0; i < deductedPlayers.length; i++) {
@@ -419,9 +432,9 @@ async function deduct(username, params) {
             if(i !== 0){
                 deductPlayerLog += ', ';
             }
-            deductPlayerLog += deductedPlayers[i].username;
+            deductPlayerLog += "@" + deductedPlayers[i].username;
         }
-        return username + " vừa trừ " + deductPlayerLog + " " + deductValue + " ly";
+        return "Admin @" + username + " vừa trừ " + deductPlayerLog + " " + deductValue + " ly";
     } catch (e) {
         logger.error("deduct exception: " + params + ", " + e);
         return "Something wrongs!";
@@ -525,8 +538,8 @@ async function weekSummary() {
         await beneficiaryPlayer.save();
 
         await googleSheetWorker.chargeFee(beneficiaryPlayer, chargedPlayer);
-        await bot.sendMessage(process.env.GROUP_CHAT_ID, "Tổng kết tuần: chúc mừng " + chargedPlayer.domain +
-            " trở thành vua cà phê tuần này với " + mostWin + " chiến thắng và được thay mặt group trả 1 ly cho thư ký " + beneficiaryPlayer.domain +". Thanks 🥰🥰🥰");
+        await bot.sendMessage(process.env.GROUP_CHAT_ID, "Tổng kết tuần: chúc mừng @" + chargedPlayer.username +
+            " trở thành vua cà phê tuần này với " + mostWin + " chiến thắng và được thay mặt group trả 1 ly cho thư ký @" + beneficiaryPlayer.domain +". Thanks 🥰🥰🥰");
 
     } catch (e) {
         logger.info("weekSummaryAndChargeFee exception: " + e);
