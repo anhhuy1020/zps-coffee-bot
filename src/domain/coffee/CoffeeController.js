@@ -22,7 +22,7 @@ async function win(username, params) {
         if(!params){
             return "Fail!! Sai cú pháp";
         }
-        params = params.replace(/, +/g, ',').replace(/ +/g, ' ').replace(/@/g, '').trim();
+        params = params.replace(/ +/g, ' ').replace(/ *, */g, ',').replace(/@/g, '').trim();
 
         let split = params.split(' win ');
         if(split.length !== 2){
@@ -30,6 +30,7 @@ async function win(username, params) {
             return "Fail!! Sai cú pháp";
         }
 
+        let a = "huyhq4,hoangtd2 win taint8 ,minht2";
         let winnerDomains = split[0].split(",");
         let loserDomains = split[1].split(",");
         if(winnerDomains.length !== loserDomains.length){
