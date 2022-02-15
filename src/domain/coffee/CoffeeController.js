@@ -22,7 +22,7 @@ async function win(username, params) {
         if(!params){
             return "Fail!! Sai cú pháp";
         }
-        params = params.replace(/, +/g, ',').replace(/@/g, '').trim();
+        params = params.replace(/, +/g, ',').replace(/ +/g, ' ').replace(/@/g, '').trim();
 
         let split = params.split(' win ');
         if(split.length !== 2){
