@@ -22,7 +22,7 @@ async function win(username, params) {
         if(!params){
             return "Fail!! Sai cú pháp";
         }
-        params = params.replace(/ +/g, ' ').replace(/ *, */g, ',').replace(/@/g, '').trim();
+        params = params.replace(/,+/g, ' ').replace(/ +/g, ' ').replace(/@/g, '').trim().toLowerCase();
 
         let split = params.split(' win ');
         if(split.length !== 2){
@@ -31,8 +31,8 @@ async function win(username, params) {
         }
 
         let a = "huyhq4,hoangtd2 win taint8 ,minht2";
-        let winnerDomains = split[0].split(",");
-        let loserDomains = split[1].split(",");
+        let winnerDomains = split[0].split(" ");
+        let loserDomains = split[1].split(" ");
         if(winnerDomains.length !== loserDomains.length){
             return "Fail!! Số lượng 2 đội khác nhau";
         }
@@ -123,6 +123,7 @@ async function forcePay(username, params){
             split[1] = split[0].slice(0, firstSpace + 1) + split[1];
             split[0] = split[0].slice(firstSpace + 1);
         }
+        split[0] = split[0].replace('@', '');
 
         return await pay(split[0], split[1]);
     } catch (e) {
@@ -150,6 +151,7 @@ async function pay(username, params) {
 
         let payer = await Player.findOne({username: username});
         if (!payer) {
+            console.log(username)
             return "Permission denied! Liên hệ admin!";
         }
         params = params.replace(/, +/g, ',').replace(/@/g, '').trim();
@@ -229,6 +231,7 @@ async function forceGift(username, params){
             split[1] = split[0].slice(0, firstSpace + 1) + split[1];
             split[0] = split[0].slice(firstSpace + 1);
         }
+        split[0] = split[0].replace('@', '');
         return await gift(split[0], split[1]);
     } catch (e) {
         logger.error("forceGift exception: " + params + ", " + e);
