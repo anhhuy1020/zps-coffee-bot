@@ -30,7 +30,6 @@ async function win(username, params) {
             return "Fail!! Sai cú pháp";
         }
 
-        let a = "huyhq4,hoangtd2 win taint8 ,minht2";
         let winnerDomains = split[0].split(" ");
         let loserDomains = split[1].split(" ");
         if(winnerDomains.length !== loserDomains.length){
@@ -618,6 +617,106 @@ async function reset(username) {
     }
 }
 
+async function check(username, params){
+    try{
+        params = params.replace(/@/g, '').replace(/ /g, '').toLowerCase();
+        let player = await Player.findOne({$or: [{domain: params}, {username: params}]});
+        if(player == null){
+            player = await Player.findOne( {username: username});
+        }
+        if(player == null){
+            return "Kiểm tra lại domain/username!";
+        }
+
+        return player.domain + ":"
+            + "\n-Total: " + player.total
+            + "\n-Hiệu số: " + (player.win - player.lose)
+            + "\n-Pay: " + (player.pay - player.paid)
+            + "\n-Gift: " + (player.gift - player.gifted);
+    } catch (e) {
+        logger.error("check exception: " + e);
+        return "Something wrongs!";
+    }
+}
+
+async function checkDetail(username, params){
+    try{
+        params = params.replace(/@/g, '').replace(/ /g, '').toLowerCase();
+        let player = await Player.findOne({$or: [{domain: params}, {username: params}]});
+        if(player == null){
+            player = await Player.findOne( {username: username});
+        }
+        if(player == null){
+            return "Kiểm tra lại domain/username!"
+        }
+
+        return player.domain + ":"
+            +"\n-Số trận thắng: " +  player.win
+            +"\n-Số trận thua: " +  player.lose
+            +"\n-Số lần pay: " +  player.pay
+            +"\n-Số lần được pay: " + player.paid
+            +"\n-Số lần gift: " +  player.gift
+            +"\n-Số lần được gift: " +  player.gifted
+            +"\n-Số lần cộng bởi admin: " + player.added
+            +"\n-Số lần bị trừ bởi admin: " + player.deducted
+            +"\n-Total: " + player.total
+
+    } catch (e) {
+        logger.error("checkDetail exception: " + e);
+        return "Something wrongs!";
+    }
+}
+
+async function donate(username, params){
+    try{
+        let player = await Player.findOne({username: username})
+        if (!player) {
+            return "Permission denied! Liên hệ admin!";
+        }
+
+        let value = 1;
+        if(params){
+            params = params.replace(/x/g, '');
+            if(utils.isInt(value) && params > 0){
+                value = params - 0;
+            }
+        }
+
+        let beneficiaryDomain = process.env.FEEE_BENEFICIARY;
+        if(player.username == beneficiaryDomain){
+            return "...";
+        }
+
+        if(player.total < 0){
+            return "Cảm ơn lòng tốt của @" + player.username + " nhưng bạn đang âm hãy gỡ trước đi 😑😑😑!";
+        }
+
+        beneficiaryDomain = beneficiaryDomain.toLowerCase();
+        let beneficiaryPlayer = await Player.findOne({domain: beneficiaryDomain});
+        if (!beneficiaryPlayer) {
+            logger.warn("donate beneficiaryPlayer is null! " + beneficiaryDomain);
+            return "Something wrongs!";
+        }
+
+        player.total -= value;
+        player.gift += value;
+        await player.save();
+
+        beneficiaryPlayer.total += value;
+        beneficiaryPlayer.gifted += value;
+        await beneficiaryPlayer.save();
+
+        await googleSheetWorker.updatePlayerTotals([player, beneficiaryPlayer]);
+        await bot.sendMessage(process.env.GROUP_CHAT_ID, "@" + player.username + " vừa donate cho @" + beneficiaryPlayer.username + " " + value + " ly để phát triển bot. Thanks!");
+        await bot.sendSticker(process.env.GROUP_CHAT_ID, "CAACAgUAAxkBAAED_ddiFjUtXpaVsHOkLK1efTee5wzU5AACwgIAAmuvcFTT7pvSA4yRQiME");
+
+    } catch (e) {
+        logger.error("checkDetail exception: " + e);
+        return "Something wrongs!";
+    }
+}
+
+
 function parseValue(params){
     let result = {value: 0, params: params};
     let firstSpace = params.search(' ');
@@ -642,5 +741,8 @@ module.exports = {
     weekSummary,
     updateTotal,
     updateAllTotal,
+    check,
+    checkDetail,
+    donate,
     reset,
 };

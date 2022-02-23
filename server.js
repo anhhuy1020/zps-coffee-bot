@@ -41,6 +41,9 @@ bot.addCommand("renewDay", coffeeController.renewDay, middleware.checkSuperAdmin
 bot.addCommand("summaryWeek", coffeeController.weekSummary, middleware.checkSuperAdmin);
 bot.addCommand("update", coffeeController.updateTotal, middleware.checkAdmin);
 bot.addCommand("updateAll", coffeeController.updateAllTotal, middleware.checkAdmin);
+bot.addCommand("check", coffeeController.check, middleware.checkGuest, "Check số liệu của ai đó. Nếu bỏ trống hoặc nhập sai domain/username thì sẽ check của bản thân");
+bot.addCommand("detail", coffeeController.checkDetail, middleware.checkGuest, "Check số liệu chi tiết của ai đó. Nếu bỏ trống hoặc nhập sai domain/username thì sẽ check của bản thân");
+bot.addCommand("donate", coffeeController.donate, middleware.checkPlayer, "Ủng hộ phát triển bot");
 
 cron.schedule('0 0 7 * * *', () => {
     coffeeController.renewDay();

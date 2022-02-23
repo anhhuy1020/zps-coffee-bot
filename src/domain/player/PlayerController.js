@@ -5,7 +5,7 @@ const bot = require('../telegraf_bot/TelegrafBot');
 
 async function addPlayer(adminName, params){
     try {
-        params = params.replace(/ +/g, ' ').trim();
+        params = params.replace(/ +/g, ' ').replace(/@/g, '').trim();
         let split = params.split(' ');
         let name = split[0].trim();
         let domain = name;

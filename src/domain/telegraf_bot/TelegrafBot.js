@@ -35,10 +35,14 @@ function addCommand(cmd, handler, middleware, description = '') {
         if(typeof handler === 'function'){
             lock = true;
             let msg = ctx.update.message.text;
-            msg = msg.replace( "/" + cmd, "").trim();
+            msg = msg.replace( "/" + cmd, "").replace("@zps_coffee_bot", "").trim();
             let response = await handler(username, msg);
-            if(response){
-                await ctx.reply(response);
+            if(response) {
+                if (response['isSticker']) {
+                    await ctx.replyWithSticker(response['stickerId']);
+                } else {
+                    await ctx.reply(response);
+                }
             }
         }
         lock = false;
@@ -108,6 +112,10 @@ async function sendMessage(groupChatId, msg){
     await bot.telegram.sendMessage(groupChatId, msg);
 }
 
+async function sendSticker(groupChatId, stickerId){
+    await bot.telegram.sendSticker(groupChatId, stickerId);
+}
+
 function notify(msg){
     bot.telegram.sendMessage(adminChatId, msg).catch((err)=>logger.error(err));
     logger.info(msg);
@@ -118,5 +126,6 @@ module.exports = {
     addCommand,
     sendMessage,
     notify,
-    sleep
+    sleep,
+    sendSticker
 };
