@@ -62,7 +62,7 @@ async function readFromSheet(range) {
         auth, //auth object
         spreadsheetId: spreadsheetId, // spreadsheet id
         range: range, //range of cells to read from.
-    }).catch((err) => logger.error("GoogleSheet readFromSheet " + err.errors));
+    }).catch((err) => logger.error("GoogleSheet readFromSheet " + JSON.stringify(err.errors)));
     return readData.data;
 }
 
@@ -78,7 +78,7 @@ async function update(range, values, valueInputOption = "USER_ENTERED") {
         resource: {
             values: values
         }
-    }).catch((err) => logger.error("GoogleSheet update " + err.errors));
+    }).catch((err) => logger.error("GoogleSheet update " + JSON.stringify(err.errors)));
 }
 
 async function append(range, values, valueInputOption = "USER_ENTERED", insertDataOption = undefined) {
@@ -93,7 +93,7 @@ async function append(range, values, valueInputOption = "USER_ENTERED", insertDa
         resource: {
             values: values
         }
-    }).catch((err) => logger.error("GoogleSheet append " + err.errors));
+    }).catch((err) => logger.error("GoogleSheet append " + JSON.stringify(err.errors)));
 }
 
 async function clear(range) {
@@ -103,7 +103,7 @@ async function clear(range) {
         auth, //auth object
         spreadsheetId, // spreadsheet id
         range: range, //sheet name and range of cells
-    }).catch((err) => logger.error("GoogleSheet clear " + err.errors));
+    }).catch((err) => logger.error("GoogleSheet clear " + JSON.stringify(err.errors)));
 }
 
 /**
