@@ -108,7 +108,7 @@ async function forcePay(username, params){
             return "Fail!! Sai cú pháp";
         }
 
-        params = params.replace(/, +/g, ',').replace(/ +/g, ' ').trim();
+        params = params.replace(/, +/g, ',').replace(/ +/g, ' ').trim().toLowerCase();
         let split = params.split(' pay ');
         if(split.length < 2){
             return "Fail!! Sai cú pháp";
@@ -148,7 +148,7 @@ async function pay(username, params) {
             return "Fail!! Sai cú pháp";
         }
 
-        let payer = await Player.findOne({username: username});
+        let payer = await Player.findOne({$or:[{username: username}, {domain: username}]});
         if (!payer) {
             console.log(username)
             return "Permission denied! Liên hệ admin!";
@@ -177,7 +177,9 @@ async function pay(username, params) {
         let payValues = Array(paidPlayers.length);
         let totalPay = 0;
         for (let i = 0; i < paidPlayers.length; i++) {
-            let payValue = paidPlayerDomains.count(paidPlayers[i].domain) * value;
+            let count = paidPlayerDomains.count(paidPlayers[i].domain);
+            count += paidPlayerDomains.count(paidPlayers[i].username);
+            let payValue = count * value;
             payValues[i] = payValue;
             totalPay += payValue;
         }
