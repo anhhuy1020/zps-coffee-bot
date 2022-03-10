@@ -178,7 +178,9 @@ async function pay(username, params) {
         let totalPay = 0;
         for (let i = 0; i < paidPlayers.length; i++) {
             let count = paidPlayerDomains.count(paidPlayers[i].domain);
-            count += paidPlayerDomains.count(paidPlayers[i].username);
+            if(count === 0 || paidPlayers[i].domain !== paidPlayers[i].username) {
+                count += paidPlayerDomains.count(paidPlayers[i].username);
+            }
             let payValue = count * value;
             payValues[i] = payValue;
             totalPay += payValue;
