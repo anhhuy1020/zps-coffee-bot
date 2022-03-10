@@ -458,9 +458,6 @@ async function renewDay() {
         }
         await googleSheetWorker.renewDay(isNewWeek);
         await bot.notify( "Day " + date + "/" + month + " has been renewed.");
-        if(isNewWeek){
-            await bot.sendMessage(process.env.GROUP_CHAT_ID, "Tuần mới bắt đầu rồi gỡ thôi nào!!");
-        }
     } catch (e) {
         logger.error("renewDay exception: " + e);
         return "Something wrongs!";
