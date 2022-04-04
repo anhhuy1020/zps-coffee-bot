@@ -261,7 +261,7 @@ async function renewDay(isNewWeek) {
     //clear day
     let firstDailyCol = getColumnName(firstRow);
     let lastDailyCol = getColumnName(lastRow);
-    let lastDailyRow = 30;
+    let lastDailyRow = 50;
     range = firstDailyCol + firstRow + ":" + lastDailyCol + lastDailyRow;
 
     await clear('DailyBet!' + range);
