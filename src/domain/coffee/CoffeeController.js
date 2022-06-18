@@ -122,7 +122,7 @@ async function forcePay(username, params){
             split[1] = split[0].slice(0, firstSpace + 1) + split[1];
             split[0] = split[0].slice(firstSpace + 1);
         }
-        split[0] = split[0].replace('@', '');
+        split[0] = split[0].replace('@', '').toLowerCase();
 
         return await pay(split[0], split[1]);
     } catch (e) {
@@ -234,7 +234,7 @@ async function forceGift(username, params){
             split[1] = split[0].slice(0, firstSpace + 1) + split[1];
             split[0] = split[0].slice(firstSpace + 1);
         }
-        split[0] = split[0].replace('@', '');
+        split[0] = split[0].replace('@', '').toLowerCase();
         return await gift(split[0], split[1]);
     } catch (e) {
         logger.error("forceGift exception: " + params + ", " + e);
@@ -261,6 +261,7 @@ async function gift(username, params) {
 
         let gifter = await Player.findOne({username: username});
         if (!gifter) {
+            logger.warn("Gift permission denied: " + username + ", " + params);
             return "Permission denied! Liên hệ admin!";
         }
         params = params.replace(/, +/g, ',').replace(/@/g, '').trim();
@@ -288,7 +289,11 @@ async function gift(username, params) {
         let giftValues = Array(giftedPlayers.length);
         let totalGift = 0;
         for (let i = 0; i < giftedPlayers.length; i++) {
-            let giftValue = giftedPlayerDomains.count(giftedPlayers[i].domain) * value;
+            let count = giftedPlayerDomains.count(giftedPlayers[i].domain);
+            if(count === 0 || giftedPlayers[i].domain !== giftedPlayers[i].username) {
+                count += giftedPlayerDomains.count(giftedPlayers[i].username);
+            }
+            let giftValue = count * value;
             giftValues[i] = giftValue;
             totalGift += giftValue;
         }
