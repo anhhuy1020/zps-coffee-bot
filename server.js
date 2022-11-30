@@ -13,7 +13,7 @@ const middleware = require('./src/authen/Middleware')
 const gsWorker = require('./src/domain/google_sheet/GoogleSheetWorker');
 const winston = require('winston');
 const {checkSuperAdmin} = require("./src/authen/Middleware");
-
+let lock = false;
 
 
 mongoose.connect(connectionString, connectionOptions).then(() => {
@@ -44,6 +44,7 @@ bot.addCommand("updateAll", coffeeController.updateAllTotal, middleware.checkAdm
 bot.addCommand("check", coffeeController.check, middleware.checkGuest, "Check số liệu của ai đó. Nếu bỏ trống hoặc nhập sai domain/username thì sẽ check của bản thân");
 bot.addCommand("detail", coffeeController.checkDetail, middleware.checkGuest, "Check số liệu chi tiết của ai đó. Nếu bỏ trống hoặc nhập sai domain/username thì sẽ check của bản thân");
 bot.addCommand("donate", coffeeController.donate, middleware.checkPlayer, "Ủng hộ phát triển bot");
+
 
 cron.schedule('0 0 0 * * *', () => {
     coffeeController.renewDay();

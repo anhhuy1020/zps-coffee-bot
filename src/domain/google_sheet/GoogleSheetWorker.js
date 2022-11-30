@@ -118,8 +118,8 @@ async function addPlayer(player) {
     //daily
     let dailyColumnName = getColumnName(sheetIdx);
     let dailyRange = dailyColumnName + '1' + ':' + dailyColumnName + '1';
-    append('DailyBet!'+dailyRange, [[domain]], VALUE_INPUT_OPTION.USER_ENTERED, INSERT_DATA_OPTIONS.OVERWRITE);
-    append('DailyPay!'+dailyRange, [[domain]], VALUE_INPUT_OPTION.USER_ENTERED, INSERT_DATA_OPTIONS.OVERWRITE);
+    await append('DailyBet!' + dailyRange, [[domain]], VALUE_INPUT_OPTION.USER_ENTERED, INSERT_DATA_OPTIONS.OVERWRITE);
+    await append('DailyPay!' + dailyRange, [[domain]], VALUE_INPUT_OPTION.USER_ENTERED, INSERT_DATA_OPTIONS.OVERWRITE);
 
     //weekly
     let weeklyRange = 'A' + sheetIdx + ':A' + sheetIdx;

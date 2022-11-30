@@ -1,5 +1,5 @@
 const AdminModel = require('../../model/Admin');
-
+const superAdmins = process.env.SUPER_ADMIN_ID.split("|");
 let _instance;
 
 function getAdmin() {
@@ -25,8 +25,21 @@ async function addAdmin(username, adminName){
     return adminName + " vừa trở thành admin!";
 }
 
+function isSuperAdmin(uid){
+    return superAdmins.indexOf(uid + '') >= 0;
+}
+
+function getUserNameById(id){
+    if(_instance.mappingUid.hasOwnProperty(id)){
+        return _instance.mappingUid[id];
+    }
+    return "";
+}
+
 module.exports = {
     getAdmin,
     addAdmin,
-    reloadAdmin
+    reloadAdmin,
+    isSuperAdmin,
+    getUserNameById
 };

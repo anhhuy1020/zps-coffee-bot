@@ -3,6 +3,7 @@ const Schema = mongoose.Schema;
 let Player = {
     domain: { type: String, unique: true, required: true },
     username: { type: String, unique: true, required: true },
+    uid: {type: Number, unique: true, required: false},
     sheetIdx: { type: Number, unique: true, required: true },
     win: { type: Number, required: false , default: 0},
     lose: { type: Number, required: false , default: 0},

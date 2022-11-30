@@ -83,7 +83,7 @@ async function win(username, params) {
             loser.total -= value;
             await loser.save();
         }
-        await googleSheetWorker.winMatch(winners, losers, value);
+        googleSheetWorker.winMatch(winners, losers, value);
         let logWinners = "";
         let logLosers = "";
         for (let i = 0; i < winners.length; i++) {
@@ -198,7 +198,7 @@ async function pay(username, params) {
             paidPlayer.total -= payValues[i];
             await paidPlayer.save();
         }
-        await googleSheetWorker.pay(payer, paidPlayers, totalPay, payValues);
+        googleSheetWorker.pay(payer, paidPlayers, totalPay, payValues);
         logger.info(username + " reported: " + username + " pay " + paidPlayerDomains);
         let paidPlayerLog = "";
         for (let i = 0; i < paidPlayers.length; i++) {
@@ -308,7 +308,7 @@ async function gift(username, params) {
             giftedPlayer.total += giftValues[i];
             await giftedPlayer.save();
         }
-        await googleSheetWorker.gift(gifter, giftedPlayers);
+        googleSheetWorker.gift(gifter, giftedPlayers);
         logger.info(username + " reported: " + username + " gift " + giftedPlayerDomains);
         let giftedPlayerLog = "";
         for (let i = 0; i < giftedPlayers.length; i++) {
@@ -375,7 +375,7 @@ async function add(username, params) {
             addedPlayer.total += addValue;
             await addedPlayer.save();
         }
-        await googleSheetWorker.updatePlayerTotals(addedPlayers);
+        googleSheetWorker.updatePlayerTotals(addedPlayers);
         logger.info(username + " reported: " + username + " add " + addedPlayerDomains);
         let addPlayerLog = "";
         for (let i = 0; i < addedPlayers.length; i++) {
@@ -437,7 +437,7 @@ async function deduct(username, params) {
             deductedPlayer.total -= deductValue;
             await deductedPlayer.save();
         }
-        await googleSheetWorker.updatePlayerTotals(deductedPlayers);
+        googleSheetWorker.updatePlayerTotals(deductedPlayers);
         logger.info(username + " reported: " + username + " dedcut " + deductedPlayerDomains);
         let deductPlayerLog = "";
         for (let i = 0; i < deductedPlayers.length; i++) {
@@ -463,7 +463,7 @@ async function renewDay() {
         if(isNewWeek){
             await clearWeek();
         }
-        await googleSheetWorker.renewDay(isNewWeek);
+        googleSheetWorker.renewDay(isNewWeek);
         await bot.notify( "Day " + date + "/" + month + " has been renewed.");
     } catch (e) {
         logger.error("renewDay exception: " + e);
@@ -546,7 +546,7 @@ async function weekSummary() {
         beneficiaryPlayer.gifted++;
         await beneficiaryPlayer.save();
 
-        await googleSheetWorker.chargeFee(beneficiaryPlayer, chargedPlayer);
+        googleSheetWorker.chargeFee(beneficiaryPlayer, chargedPlayer);
         await bot.sendMessage(process.env.GROUP_CHAT_ID, "Tổng kết tuần: chúc mừng @" + chargedPlayer.username +
             " trở thành vua cà phê tuần này với " + mostWin + " chiến thắng và được thay mặt group trả 1 ly cho thư ký @" + beneficiaryPlayer.domain +". Thanks 🥰🥰🥰");
 
@@ -561,7 +561,7 @@ async function updateTotal(username, params){
         let domains = params.split(',');
         let players = await Player.find({domain: {$in: domains}});
 
-        await googleSheetWorker.updatePlayerTotals(players);
+        googleSheetWorker.updatePlayerTotals(players);
 
         logger.info(username + " reported: " + username + " updateTotal " + domains);
         let log = "";
@@ -582,7 +582,7 @@ async function updateAllTotal(username){
     try{
         let players = await Player.find();
 
-        await googleSheetWorker.updatePlayerTotals(players);
+        googleSheetWorker.updatePlayerTotals(players);
 
         logger.info(username + " reported: " + username + " updateAll");
         return username + " vừa update số liệu của tất cả";
@@ -613,8 +613,8 @@ async function reset(username) {
             player.deducted = 0;
             await player.save();
         }
-        await googleSheetWorker.updatePlayerTotals(players);
-        await googleSheetWorker.renewDay(true);
+        googleSheetWorker.updatePlayerTotals(players);
+        googleSheetWorker.renewDay(true);
         logger.info(username + " has reset season!");
         await bot.sendMessage(process.env.GROUP_CHAT_ID,"Mùa giải mới bắt đầu, làm lại thôi nào");
     } catch (e) {
@@ -634,6 +634,7 @@ async function check(username, params){
             return "Kiểm tra lại domain/username!";
         }
 
+        logger.info(username + " /check: " + params);
         return player.domain + ":"
             + "\n-Total: " + player.total
             + "\n-Hiệu số: " + (player.win - player.lose)
@@ -656,6 +657,7 @@ async function checkDetail(username, params){
             return "Kiểm tra lại domain/username!"
         }
 
+        logger.info(username + " /detail: " + params);
         return player.domain + ":"
             +"\n-Số trận thắng: " +  player.win
             +"\n-Số trận thua: " +  player.lose
@@ -712,7 +714,7 @@ async function donate(username, params){
         beneficiaryPlayer.gifted += value;
         await beneficiaryPlayer.save();
 
-        await googleSheetWorker.updatePlayerTotals([player, beneficiaryPlayer]);
+        googleSheetWorker.updatePlayerTotals([player, beneficiaryPlayer]);
         await bot.sendMessage(process.env.GROUP_CHAT_ID, "@" + player.username + " vừa donate cho @" + beneficiaryPlayer.username + " " + value + " ly để phát triển bot. Thanks!");
         await bot.sendSticker(process.env.GROUP_CHAT_ID, "CAACAgUAAxkBAAED_ddiFjUtXpaVsHOkLK1efTee5wzU5AACwgIAAmuvcFTT7pvSA4yRQiME");
 
