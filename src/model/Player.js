@@ -18,6 +18,7 @@ let Player = {
     added: { type: Number, required: false , default: 0},
     deducted: { type: Number, required: false , default: 0},
     isBan: { type: Boolean, required: false , default: false},
+    isRestrict: { type: Boolean, required: true, default: false},
     total: { type: Number, required: true , default: 0},
 };
 const schema = new Schema(Player);

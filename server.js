@@ -23,9 +23,9 @@ mongoose.connect(connectionString, connectionOptions).then(() => {
 mongoose.Promise = global.Promise;
 
 bot.launchBot(botToken);
-bot.addCommand("win", coffeeController.win, middleware.checkPlayer,"Dùng để báo team win, thêm xN ở trước nếu win N lần. \nEx: /win Hoangtd2, Huyhq4 win Taint8, Minht2 \n /win x5 Huyhq4 win Taint8 (Huyhq4 win Taint8 5 lần)");
+bot.addCommand("win", coffeeController.win, middleware.checkPlayer, true,"Dùng để báo team win, thêm xN ở trước nếu win N lần. \nEx: /win Hoangtd2, Huyhq4 win Taint8, Minht2 \n /win x5 Huyhq4 win Taint8 (Huyhq4 win Taint8 5 lần)");
 bot.addCommand("pay", coffeeController.pay, middleware.checkPlayer, "Pay cà phê cho ai đó (domain điền 2 lần sẽ tính pay 2 lần), thêm xN ở trước để pay nhiều lần (tượng tự /win). \nEx: /pay Hoangtd2, Huyhq4 \n /pay x2 Hoangtd2, Hoangtd2 (pay cho Hoangtd2 4 lần)");
-bot.addCommand("gift", coffeeController.gift, middleware.checkPlayer, "Tặng cà phê cho ai đó, tương tự /pay. \nEx: /gift Hoangtd2, Huyhq4 \n /gift x2 Huyhq4 (gift cho Huyhq4 2 lần)");
+bot.addCommand("gift", coffeeController.gift, middleware.checkPlayer, true, "Tặng cà phê cho ai đó, tương tự /pay. \nEx: /gift Hoangtd2, Huyhq4 \n /gift x2 Huyhq4 (gift cho Huyhq4 2 lần)");
 bot.addCommand("forcePay", coffeeController.forcePay, middleware.checkAdmin);
 bot.addCommand("forceGift", coffeeController.forceGift, middleware.checkAdmin);
 bot.addCommand("add", coffeeController.add, middleware.checkAdmin);
@@ -41,16 +41,16 @@ bot.addCommand("renewDay", coffeeController.renewDay, middleware.checkSuperAdmin
 bot.addCommand("summaryWeek", coffeeController.weekSummary, middleware.checkSuperAdmin);
 bot.addCommand("update", coffeeController.updateTotal, middleware.checkAdmin);
 bot.addCommand("updateAll", coffeeController.updateAllTotal, middleware.checkAdmin);
-bot.addCommand("check", coffeeController.check, middleware.checkGuest, "Check số liệu của ai đó. Nếu bỏ trống hoặc nhập sai domain/username thì sẽ check của bản thân");
-bot.addCommand("detail", coffeeController.checkDetail, middleware.checkGuest, "Check số liệu chi tiết của ai đó. Nếu bỏ trống hoặc nhập sai domain/username thì sẽ check của bản thân");
-bot.addCommand("donate", coffeeController.donate, middleware.checkPlayer, "Ủng hộ phát triển bot");
+bot.addCommand("check", coffeeController.check, middleware.checkGuest, false, "Check số liệu của ai đó. Nếu bỏ trống hoặc nhập sai domain/username thì sẽ check của bản thân");
+bot.addCommand("detail", coffeeController.checkDetail, middleware.checkGuest, false, "Check số liệu chi tiết của ai đó. Nếu bỏ trống hoặc nhập sai domain/username thì sẽ check của bản thân");
+bot.addCommand("donate", coffeeController.donate, middleware.checkPlayer, false, "Ủng hộ phát triển bot");
 
 
 cron.schedule('0 0 0 * * *', () => {
     coffeeController.renewDay();
 });
 
-cron.schedule('0 0 19 * * FRI', () => {
+cron.schedule('0 0 19 * * SUN', () => {
     coffeeController.weekSummary();
 });
 

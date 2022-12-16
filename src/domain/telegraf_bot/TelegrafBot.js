@@ -14,7 +14,7 @@ function releaseLock() {
     lock = false;
 }
 
-function addCommand(cmd, handler, middleware, description = '') {
+function addCommand(cmd, handler, middleware, restrict = false, description = '') {
     if (bot == null) {
         logger.info("Bot hasn't been launched!");
         return;

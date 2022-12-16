@@ -16,7 +16,7 @@ const logger = winston.createLogger({
             format: winston.format.printf((info) => {
                 return `${info.timestamp}|${info.level}|${info.message}`
             }),
-            filename: 'zps_coffee-%DATE%.log',
+            filename: 'zps_coffee-item-%DATE%.log',
             dirname: `${appRoot}/logs/item`,
             handleExceptions: true,
             colorize: true,

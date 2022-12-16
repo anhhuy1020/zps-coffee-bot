@@ -3,6 +3,7 @@ const googleSheetWorker = require('../google_sheet/GoogleSheetWorker');
 const bot = require('../telegraf_bot/TelegrafBot');
 const utils = require('../../utils/Utils');
 const logger = require('../../utils/Logger');
+const itemLogger = require('../../utils/itemLogger');
 const {sendMessage} = require("../telegraf_bot/TelegrafBot");
 const {isInt} = require("../../utils/Utils");
 
@@ -74,6 +75,7 @@ async function win(username, params) {
             winner.weeklyWin += value;
             winner.win += value;
             winner.total += value;
+            itemLogger.info(winner.domain + " win x" + value + "|" + JSON.stringify(winner));
             await winner.save();
         }
         for (let i = 0; i < losers.length; i++) {
@@ -81,6 +83,7 @@ async function win(username, params) {
             loser.weeklyLose += value;
             loser.lose += value;
             loser.total -= value;
+            itemLogger.info(loser.domain + " lose x" + value + "|" + JSON.stringify(loser));
             await loser.save();
         }
         googleSheetWorker.winMatch(winners, losers, value);
@@ -153,9 +156,9 @@ async function pay(username, params) {
             console.log(username)
             return "Permission denied! Liên hệ admin!";
         }
-        params = params.replace(/, +/g, ',').replace(/@/g, '').trim();
+        params = params.replace(/,+/g, ' ').replace(/ +/g, ' ').replace(/@/g, '').trim().toLowerCase();
 
-        let paidPlayerDomains = params.split(",");
+        let paidPlayerDomains = params.split(" ");
         if(paidPlayerDomains.length <= 0){
             return "Người được pay không hợp lệ!";
         }
@@ -169,6 +172,7 @@ async function pay(username, params) {
             return "Không thể pay cho chính mình!";
         }
         let paidPlayers = await Player.find({$or: [{domain: {$in: paidPlayerDomains}}, {username: {$in:  paidPlayerDomains}}]});
+
         if (paidPlayers.length <= 0) {
             logger.warn("Pay fail! params = " + params + ", paidPlayers = " + paidPlayerDomains);
             return "Fail!! Kiểm tra lại domain";
@@ -189,6 +193,7 @@ async function pay(username, params) {
         payer.pay += totalPay;
         payer.weeklyPay += totalPay;
         payer.total += totalPay;
+        itemLogger.info(payer.domain + " pay x" + totalPay + "|" + JSON.stringify(payer));
         await payer.save();
 
         for (let i = 0; i < paidPlayers.length; i++) {
@@ -196,6 +201,7 @@ async function pay(username, params) {
             paidPlayer.paid += payValues[i];
             paidPlayer.weeklyPaid += payValues[i];
             paidPlayer.total -= payValues[i];
+            itemLogger.info(paidPlayer.domain + " paid x" + payValues[i] + "|" + JSON.stringify(paidPlayer));
             await paidPlayer.save();
         }
         googleSheetWorker.pay(payer, paidPlayers, totalPay, payValues);
@@ -264,9 +270,9 @@ async function gift(username, params) {
             logger.warn("Gift permission denied: " + username + ", " + params);
             return "Permission denied! Liên hệ admin!";
         }
-        params = params.replace(/, +/g, ',').replace(/@/g, '').trim();
+        params = params.replace(/,+/g, ' ').replace(/ +/g, ' ').replace(/@/g, '').trim().toLowerCase();
 
-        let giftedPlayerDomains = params.split(",");
+        let giftedPlayerDomains = params.split(" ");
         if(giftedPlayerDomains.length <= 0){
             return "Người được gift không hợp lệ!";
         }
@@ -300,12 +306,15 @@ async function gift(username, params) {
 
         gifter.gift += totalGift;
         gifter.total -= totalGift;
+        itemLogger.info(gifter.domain + " gift x" + totalGift + "|" + JSON.stringify(gifter));
+
         await gifter.save();
 
         for (let i = 0; i < giftedPlayers.length; i++) {
             let giftedPlayer = giftedPlayers[i];
             giftedPlayer.gifted += giftValues[i];
             giftedPlayer.total += giftValues[i];
+            itemLogger.info(giftedPlayer.domain + " gifted x" + giftValues[i] + "|" + JSON.stringify(giftedPlayer));
             await giftedPlayer.save();
         }
         googleSheetWorker.gift(gifter, giftedPlayers);
@@ -373,6 +382,7 @@ async function add(username, params) {
             let addedPlayer = addedPlayers[i];
             addedPlayer.added += addValue;
             addedPlayer.total += addValue;
+            itemLogger.info(addedPlayer.domain + " added x" + addValue + "|" + JSON.stringify(addedPlayer));
             await addedPlayer.save();
         }
         googleSheetWorker.updatePlayerTotals(addedPlayers);
@@ -435,6 +445,7 @@ async function deduct(username, params) {
             let deductedPlayer = deductedPlayers[i];
             deductedPlayer.deducted += deductValue;
             deductedPlayer.total -= deductValue;
+            itemLogger.info(deductedPlayer.domain + " deducted x" + deductValue + "|" + JSON.stringify(deductedPlayer));
             await deductedPlayer.save();
         }
         googleSheetWorker.updatePlayerTotals(deductedPlayers);
