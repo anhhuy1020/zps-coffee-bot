@@ -3,9 +3,9 @@ const googleSheetWorker = require('../google_sheet/GoogleSheetWorker');
 const bot = require('../telegraf_bot/TelegrafBot');
 const utils = require('../../utils/Utils');
 const logger = require('../../utils/Logger');
-const itemLogger = require('../../utils/itemLogger');
 const {sendMessage} = require("../telegraf_bot/TelegrafBot");
 const {isInt} = require("../../utils/Utils");
+const util = require("util");
 
 async function win(username, params) {
     try{
@@ -75,7 +75,6 @@ async function win(username, params) {
             winner.weeklyWin += value;
             winner.win += value;
             winner.total += value;
-            itemLogger.info(winner.domain + " win x" + value + "|" + JSON.stringify(winner));
             await winner.save();
         }
         for (let i = 0; i < losers.length; i++) {
@@ -83,7 +82,6 @@ async function win(username, params) {
             loser.weeklyLose += value;
             loser.lose += value;
             loser.total -= value;
-            itemLogger.info(loser.domain + " lose x" + value + "|" + JSON.stringify(loser));
             await loser.save();
         }
         googleSheetWorker.winMatch(winners, losers, value);
@@ -156,9 +154,9 @@ async function pay(username, params) {
             console.log(username)
             return "Permission denied! Liên hệ admin!";
         }
-        params = params.replace(/,+/g, ' ').replace(/ +/g, ' ').replace(/@/g, '').trim().toLowerCase();
+        params = params.replace(/, +/g, ',').replace(/@/g, '').trim();
 
-        let paidPlayerDomains = params.split(" ");
+        let paidPlayerDomains = params.split(",");
         if(paidPlayerDomains.length <= 0){
             return "Người được pay không hợp lệ!";
         }
@@ -172,7 +170,6 @@ async function pay(username, params) {
             return "Không thể pay cho chính mình!";
         }
         let paidPlayers = await Player.find({$or: [{domain: {$in: paidPlayerDomains}}, {username: {$in:  paidPlayerDomains}}]});
-
         if (paidPlayers.length <= 0) {
             logger.warn("Pay fail! params = " + params + ", paidPlayers = " + paidPlayerDomains);
             return "Fail!! Kiểm tra lại domain";
@@ -193,7 +190,7 @@ async function pay(username, params) {
         payer.pay += totalPay;
         payer.weeklyPay += totalPay;
         payer.total += totalPay;
-        itemLogger.info(payer.domain + " pay x" + totalPay + "|" + JSON.stringify(payer));
+        payer.lastPay = new Date().getTime();
         await payer.save();
 
         for (let i = 0; i < paidPlayers.length; i++) {
@@ -201,7 +198,6 @@ async function pay(username, params) {
             paidPlayer.paid += payValues[i];
             paidPlayer.weeklyPaid += payValues[i];
             paidPlayer.total -= payValues[i];
-            itemLogger.info(paidPlayer.domain + " paid x" + payValues[i] + "|" + JSON.stringify(paidPlayer));
             await paidPlayer.save();
         }
         googleSheetWorker.pay(payer, paidPlayers, totalPay, payValues);
@@ -226,7 +222,7 @@ async function forceGift(username, params){
         if (!params) {
             return "Fail!! Sai cú pháp";
         }
-        params = params.replace(/, +/g, ',').replace(/ +/g, ' ').trim();
+        params = params.replace(/,+/g, ' ').replace(/ +/g, ' ').trim();
         let split = params.split(' gift ');
         if(split.length < 2){
             return "Fail!! Sai cú pháp";
@@ -306,15 +302,12 @@ async function gift(username, params) {
 
         gifter.gift += totalGift;
         gifter.total -= totalGift;
-        itemLogger.info(gifter.domain + " gift x" + totalGift + "|" + JSON.stringify(gifter));
-
         await gifter.save();
 
         for (let i = 0; i < giftedPlayers.length; i++) {
             let giftedPlayer = giftedPlayers[i];
             giftedPlayer.gifted += giftValues[i];
             giftedPlayer.total += giftValues[i];
-            itemLogger.info(giftedPlayer.domain + " gifted x" + giftValues[i] + "|" + JSON.stringify(giftedPlayer));
             await giftedPlayer.save();
         }
         googleSheetWorker.gift(gifter, giftedPlayers);
@@ -382,7 +375,6 @@ async function add(username, params) {
             let addedPlayer = addedPlayers[i];
             addedPlayer.added += addValue;
             addedPlayer.total += addValue;
-            itemLogger.info(addedPlayer.domain + " added x" + addValue + "|" + JSON.stringify(addedPlayer));
             await addedPlayer.save();
         }
         googleSheetWorker.updatePlayerTotals(addedPlayers);
@@ -445,7 +437,6 @@ async function deduct(username, params) {
             let deductedPlayer = deductedPlayers[i];
             deductedPlayer.deducted += deductValue;
             deductedPlayer.total -= deductValue;
-            itemLogger.info(deductedPlayer.domain + " deducted x" + deductValue + "|" + JSON.stringify(deductedPlayer));
             await deductedPlayer.save();
         }
         googleSheetWorker.updatePlayerTotals(deductedPlayers);
@@ -686,6 +677,105 @@ async function checkDetail(username, params){
     }
 }
 
+async function top(username, params){
+    try{
+        params = params || "";
+        params = params.replace(/,+/g, ' ').replace(/ +/g, ' ').replace(/@/g, '').trim().toLowerCase();
+        let split = params.split(' ');
+        let top = utils.isInt(split[0])? split[0] - 0: 3;
+        let order = top > 0? "desc": "asc";
+        let property = split[1];
+        property = property && Player.schema.obj.hasOwnProperty(property)? property: 'total';
+        let topPlayers = await Player.find().sort({total: order}).limit(top);
+        if (topPlayers == null || topPlayers.length <= 0){
+            return;
+        }
+        let str = "Bảng phong thần phê thủ "  + property + (top > 0?"": " t̶ừ̶ ̶d̶ư̶ớ̶i̶ ̶l̶ê̶n̶" ) + ": \n";
+        for (let i = 0; i < topPlayers.length; i++) {
+            str += (i + 1) + ". " + topPlayers[i].username + " " + property + " " + topPlayers[i][property] +" ly\n" ;
+        }
+        logger.info(username + " /top: " + params);
+        return str;
+
+    } catch (e) {
+        logger.error("top exception: " +params+"|" + e );
+        return "Something wrongs!";
+    }
+}
+
+async function summon(username, params){
+    try{
+        let player = await Player.findOne({username: username})
+        if (!player) {
+            return "Permission denied! Liên hệ admin!";
+        }
+        if(player.total <= 0){
+            return  "/check " + player.domain + ":"
+                + "\n-Total: " + player.total
+                + "\n-Hiệu số: " + (player.win - player.lose)
+                + "\n-Pay: " + (player.pay - player.paid)
+                + "\n-Gift: " + (player.gift - player.gifted)
+                + "\n Very funny, can't stop laughing 🤡🤡🤡."
+        }
+        let num = utils.isInt(params)? params - 0: 1;
+        let limit = 3;
+        let today = new Date();
+        today.setHours(0, 0, 0);
+        today = today.getTime();
+        let badPlayers = await Player.aggregate([
+            // Lọc ra các phần tử có trường "total" lớn hơn 0
+            { $match: { total: { $lt: 0 } } },
+            // Thêm một trường mới là "total_minus_paid" bằng giá trị "total" trừ "paid"
+            { $addFields: { total_minus_paid: { $subtract: [ "$total", "$paid" ] } } },
+            // Tính tổng của hai trường "total_minus_paid" và "pay" thành một trường mới "total_minus_paid_plus_pay"
+            { $addFields: { aggressive: { $add: [ "$total_minus_paid", "$pay" ] } } },
+            // Lọc ra các phần tử có trường "lastPay" không phải là hôm nay hoặc không có trường "lastPay"
+            { $match: { lastPay: { $lt: today } } },
+            // Sắp xếp các phần tử theo trường "aggressive" theo thứ tự tăng dần
+            { $sort: { aggressive: 1 } },
+            // Chỉ lấy ra 10 phần tử đầu tiên trong danh sách được sắp xếp
+            { $limit: limit }
+        ], function(err, result) {
+            if (err) {
+                console.log(err);
+            } else {
+                // Nếu số phần tử trả về không đủ thì lấy thêm các phần tử có trường "lastPay" là hôm nay
+                const count = result.length;
+                if (count < limit) {
+                    Player.find({$and: [{ lastPay: { $lt: today } }, {total: { $lt: 0 }}]})
+                        .sort({ aggressive: -1 })
+                        .limit(limit - count)
+                        .exec(function(err, newResults) {
+                            if (err) {
+                                console.log(err);
+                            } else {
+                                // Kết hợp kết quả mới vào kết quả cũ
+                                result = result.concat(newResults);
+                                console.log(result);
+                            }
+                        });
+                } else {
+                    console.log(result);
+                }
+            }
+        });
+        if (badPlayers == null || badPlayers.length <= 0){
+            return "Hôm nay âm thủ pay hết rồi tha cho họ nhé 😊😊😊!";
+        }
+        let str = username + " cần pay" + (num > 0? num + " ly": "") +" kìa ";
+        for (let i = 0; i < badPlayers.length - 1; i++) {
+            str += "@" + badPlayers[i].username + ", ";
+        }
+        str += "@" + badPlayers[badPlayers.length - 1].username;
+        logger.info(username + " /top: " + params);
+        return str;
+
+    } catch (e) {
+        logger.error("needPay exception: " +params+"|" + e );
+        return "Something wrongs!";
+    }
+}
+
 async function donate(username, params){
     try{
         let player = await Player.findOne({username: username})
@@ -764,4 +854,6 @@ module.exports = {
     checkDetail,
     donate,
     reset,
+    top,
+    summon,
 };
