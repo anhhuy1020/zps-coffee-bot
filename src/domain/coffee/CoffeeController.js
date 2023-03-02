@@ -825,6 +825,20 @@ async function donate(username, params){
     }
 }
 
+async function doSomething(username, params){
+    try{
+        let players = await Player.find();
+        for (let i in players) {
+            let player = players[i];
+            player.payCoefficient = player.pay - player.paid;
+            await player.save();
+        }
+    } catch (e) {
+        logger.error("checkDetail exception: " + e);
+        return "Something wrongs!";
+    }
+}
+
 
 function parseValue(params){
     let result = {value: 0, params: params};
@@ -837,6 +851,25 @@ function parseValue(params){
     return result;
 }
 
+function isRestricts(players){
+    for (let i = 0; i < players.length; i++) {
+        if (isRestrict(players[i])){
+            return true;
+        }
+    }
+    return false;
+}
+
+function isRestrict(player){
+    let coefficient = player.payCoefficient;
+    if (player.total > 0){
+        coefficient +=  player.total;
+    } else{
+        coefficient -= player.total;
+
+    }
+    return coefficient < 10;
+}
 
 module.exports = {
     win,
@@ -856,4 +889,5 @@ module.exports = {
     reset,
     top,
     summon,
+    doSomething
 };

@@ -46,6 +46,7 @@ bot.addCommand("detail", coffeeController.checkDetail, middleware.checkGuest, fa
 bot.addCommand("donate", coffeeController.donate, middleware.checkPlayer, false, "Ủng hộ phát triển bot");
 bot.addCommand("top", coffeeController.top, middleware.checkGuest, false, "Bảng phong thần phê thủ");
 bot.addCommand("summon", coffeeController.summon, middleware.checkPlayer, false, "Triệu hồi những âm thủ k chịu pay");
+bot.addCommand("doSomething", coffeeController.doSomething, middleware.checkSuperAdmin);
 
 
 cron.schedule('0 0 0 * * *', () => {
