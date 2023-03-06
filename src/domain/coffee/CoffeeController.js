@@ -6,6 +6,7 @@ const logger = require('../../utils/Logger');
 const {sendMessage} = require("../telegraf_bot/TelegrafBot");
 const {isInt} = require("../../utils/Utils");
 const util = require("util");
+const {isSuperAdmin} = require("../admin/AdminController");
 
 async function win(username, params) {
     try{
@@ -635,13 +636,14 @@ async function check(username, params){
         if(player == null){
             return "Kiểm tra lại domain/username!";
         }
-
+        let lastPay = player.lastPay <= 0? "-1": new Date(player.lastPay);
         logger.info(username + " /check: " + params);
         return player.domain + ":"
             + "\n-Total: " + player.total
             + "\n-Hiệu số: " + (player.win - player.lose)
             + "\n-Pay: " + (player.pay - player.paid)
-            + "\n-Gift: " + (player.gift - player.gifted);
+            + "\n-Gift: " + (player.gift - player.gifted)
+            + "\n-LastPay: " + lastPay;
     } catch (e) {
         logger.error("check exception: " + e);
         return "Something wrongs!";
@@ -658,6 +660,7 @@ async function checkDetail(username, params){
         if(player == null){
             return "Kiểm tra lại domain/username!"
         }
+        let lastPay = player.lastPay <= 0? "-1": new Date(player.lastPay);
 
         logger.info(username + " /detail: " + params);
         return player.domain + ":"
@@ -669,6 +672,7 @@ async function checkDetail(username, params){
             +"\n-Số lần được gift: " +  player.gifted
             +"\n-Số lần cộng bởi admin: " + player.added
             +"\n-Số lần bị trừ bởi admin: " + player.deducted
+            +"\n-Lần cuối pay: " + lastPay
             +"\n-Total: " + player.total
 
     } catch (e) {
@@ -686,7 +690,7 @@ async function top(username, params){
         let order = top > 0? "desc": "asc";
         let property = split[1];
         property = property && Player.schema.obj.hasOwnProperty(property)? property: 'total';
-        let topPlayers = await Player.find().sort({total: order}).limit(top);
+        let topPlayers = await Player.find().sort({[property]: order}).limit(top);
         if (topPlayers == null || topPlayers.length <= 0){
             return;
         }
@@ -709,7 +713,8 @@ async function summon(username, params){
         if (!player) {
             return "Permission denied! Liên hệ admin!";
         }
-        if(player.total <= 0){
+        let beneficiaryDomain = process.env.FEEE_BENEFICIARY;
+        if(player.total <= 0 && player.username != beneficiaryDomain){
             return  "/check " + player.domain + ":"
                 + "\n-Total: " + player.total
                 + "\n-Hiệu số: " + (player.win - player.lose)
@@ -717,61 +722,48 @@ async function summon(username, params){
                 + "\n-Gift: " + (player.gift - player.gifted)
                 + "\n Very funny, can't stop laughing 🤡🤡🤡."
         }
-        let num = utils.isInt(params)? params - 0: 1;
         let limit = 3;
         let today = new Date();
         today.setHours(0, 0, 0);
         today = today.getTime();
+        console.log("today: " + today);
         let badPlayers = await Player.aggregate([
-            // Lọc ra các phần tử có trường "total" lớn hơn 0
-            { $match: { total: { $lt: 0 } } },
-            // Thêm một trường mới là "total_minus_paid" bằng giá trị "total" trừ "paid"
-            { $addFields: { total_minus_paid: { $subtract: [ "$total", "$paid" ] } } },
-            // Tính tổng của hai trường "total_minus_paid" và "pay" thành một trường mới "total_minus_paid_plus_pay"
-            { $addFields: { aggressive: { $add: [ "$total_minus_paid", "$pay" ] } } },
+            // Lọc ra các phần tử có trường "total" nhỏ hơn 0 và lastPay lớn hơn today
+            { $match: { $and: [ { total: { $lt: 0 } },
+                        { $or: [ { lastPay: { $lt: today } }, { lastPay: { $exists: false } } ] }]} },
+            // Thêm một trường mới là "payCoefficient" bằng giá trị "total" trừ "paid"
+            { $addFields: { payCoefficient: { $subtract: [ "$pay", "$paid" ] } } },
+            // Tính tổng của hai trường "payCoefficient" và "pay" thành một trường mới "aggressive"
+            { $addFields: { aggressive: { $add: [ "$total", "$payCoefficient" ] } } },
             // Lọc ra các phần tử có trường "lastPay" không phải là hôm nay hoặc không có trường "lastPay"
-            { $match: { lastPay: { $lt: today } } },
+            // { $match: { lastPay: { $lt: today } } },
             // Sắp xếp các phần tử theo trường "aggressive" theo thứ tự tăng dần
             { $sort: { aggressive: 1 } },
-            // Chỉ lấy ra 10 phần tử đầu tiên trong danh sách được sắp xếp
+            // Chỉ lấy ra limit phần tử đầu tiên trong danh sách được sắp xếp
             { $limit: limit }
         ], function(err, result) {
             if (err) {
                 console.log(err);
             } else {
-                // Nếu số phần tử trả về không đủ thì lấy thêm các phần tử có trường "lastPay" là hôm nay
-                const count = result.length;
-                if (count < limit) {
-                    Player.find({$and: [{ lastPay: { $lt: today } }, {total: { $lt: 0 }}]})
-                        .sort({ aggressive: -1 })
-                        .limit(limit - count)
-                        .exec(function(err, newResults) {
-                            if (err) {
-                                console.log(err);
-                            } else {
-                                // Kết hợp kết quả mới vào kết quả cũ
-                                result = result.concat(newResults);
-                                console.log(result);
-                            }
-                        });
-                } else {
-                    console.log(result);
-                }
+                console.log(result);
             }
         });
         if (badPlayers == null || badPlayers.length <= 0){
             return "Hôm nay âm thủ pay hết rồi tha cho họ nhé 😊😊😊!";
         }
-        let str = username + " cần pay" + (num > 0? num + " ly": "") +" kìa ";
+        let str = username + " cần pay kìa ";
         for (let i = 0; i < badPlayers.length - 1; i++) {
             str += "@" + badPlayers[i].username + ", ";
         }
         str += "@" + badPlayers[badPlayers.length - 1].username;
+        if (params.length > 0) {
+            str += " : " + params;
+        }
         logger.info(username + " /top: " + params);
         return str;
 
     } catch (e) {
-        logger.error("needPay exception: " +params+"|" + e );
+        logger.error("summon exception: " +params+"|" + e );
         return "Something wrongs!";
     }
 }
