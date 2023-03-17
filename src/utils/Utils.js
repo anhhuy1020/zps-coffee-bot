@@ -70,11 +70,24 @@ function isInt(value) {
     return !isNaN(value) && (x | 0) === x;
 }
 
+function clamp(value, min, max) {
+    if (isNaN(value)){
+        return value;
+    }
+    if (min > max){
+        min = min + max;
+        max = min - max;
+        min = min - max;
+    }
+    return Math.max(min, Math.min(value, max));
+}
+
 module.exports = {
     setEnv,
     getEnv,
     capitalizeFirstLetter,
     getDayOfWeek,
     randomInt,
-    isInt
+    isInt,
+    clamp
 };

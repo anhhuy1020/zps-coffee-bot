@@ -97,11 +97,11 @@ function launchBot(botToken) {
         ctx.reply(msg)
     });
 
-    bot.command('sayHi', (ctx) => {
+    bot.command('sayhi', (ctx) => {
         ctx.reply("Hi, I'm ZPS Coffee bot - trợ lý thư ký giúp thống kê và tính toán c̶̶á̶̶c̶ ̶k̶̶è̶̶o̶ ̶c̶̶á̶ ̶đ̶̶ộ̶ cà phê của group, lệ phí là mỗi tuần 1 ly ạ 😀.\nSố liệu sẽ được upate ở link này: https://docs.google.com/spreadsheets/d/1qKoRfazRmLqK5oyW8V2Mx0PpBySYwngz-ihNK3otk04/edit#gid=0")
     });
 
-    bot.command('setGroup', (ctx) => {
+    bot.command('setgroup', (ctx) => {
         let chatId = ctx.update.message.chat.id;
         if (ctx.update.message.from.id != process.env.SUPER_ADMIN_ID) {
             ctx.reply("Bạn không phải super Admin")

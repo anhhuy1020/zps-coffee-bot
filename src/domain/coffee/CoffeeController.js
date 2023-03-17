@@ -636,14 +636,13 @@ async function check(username, params){
         if(player == null){
             return "Kiểm tra lại domain/username!";
         }
-        let lastPay = player.lastPay <= 0? "-1": new Date(player.lastPay);
         logger.info(username + " /check: " + params);
         return player.domain + ":"
             + "\n-Total: " + player.total
             + "\n-Hiệu số: " + (player.win - player.lose)
             + "\n-Pay: " + (player.pay - player.paid)
             + "\n-Gift: " + (player.gift - player.gifted)
-            + "\n-LastPay: " + lastPay;
+            ;
     } catch (e) {
         logger.error("check exception: " + e);
         return "Something wrongs!";
@@ -660,7 +659,7 @@ async function checkDetail(username, params){
         if(player == null){
             return "Kiểm tra lại domain/username!"
         }
-        let lastPay = player.lastPay <= 0? "-1": new Date(player.lastPay);
+        let lastPay = player.lastPay <= 0? "-1": new Date(player.lastPay).toLocaleString();
 
         logger.info(username + " /detail: " + params);
         return player.domain + ":"
@@ -686,7 +685,8 @@ async function top(username, params){
         params = params || "";
         params = params.replace(/,+/g, ' ').replace(/ +/g, ' ').replace(/@/g, '').trim().toLowerCase();
         let split = params.split(' ');
-        let top = utils.isInt(split[0])? split[0] - 0: 3;
+        let top = utils.clamp(top, -10, 10);
+
         let order = top > 0? "desc": "asc";
         let property = split[1];
         property = property && Player.schema.obj.hasOwnProperty(property)? property: 'total';
@@ -819,12 +819,9 @@ async function donate(username, params){
 
 async function doSomething(username, params){
     try{
-        let players = await Player.find();
-        for (let i in players) {
-            let player = players[i];
-            player.payCoefficient = player.pay - player.paid;
-            await player.save();
-        }
+        let split = params.split(" ");
+        await googleSheetWorker.removeRowOrColumn(split[0], split[1], split[2])
+        return "success";
     } catch (e) {
         logger.error("checkDetail exception: " + e);
         return "Something wrongs!";

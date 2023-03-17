@@ -105,8 +105,50 @@ async function clear(range) {
         range: range, //sheet name and range of cells
     }).catch((err) => logger.error("GoogleSheet clear " + JSON.stringify(err.errors)));
 }
+async function removeRowOrColumn(sheetName, dimension, index) {
+    const authClientObject = await auth.getClient();
+    const googleSheetsInstance = google.sheets({version: "v4", auth: authClientObject});
+    const sheetId =  await getSheetIdByName(sheetName);
+    await googleSheetsInstance.spreadsheets.batchUpdate({
+        auth,
+        spreadsheetId: spreadsheetId,
+        resource: {
+            requests: [{
+                deleteDimension: {
+                    range: {
+                        sheetId: sheetId,
+                        dimension: dimension,
+                        startIndex: index - 1,
+                        endIndex: index,
+                    },
+                },
+            }],
+        },
+    }).then(function (response) {
+        logger.info(`${dimension} ${index} has been deleted from ${sheetName}`);
+    }, function (reason) {
+        logger.error(`An error occurred: ${reason.result.error.message}`);
+    });
 
-/**
+}
+
+// Hàm lấy sheetId bằng tên Sheet
+async function getSheetIdByName(sheetName) {
+    const authClientObject = await auth.getClient();
+    const googleSheetsInstance = google.sheets({ version: "v4", auth: authClientObject });
+    return await googleSheetsInstance.spreadsheets.get({
+        spreadsheetId: spreadsheetId,
+    }).then(function(response) {
+        const sheets = response.data.sheets;
+        for (let i = 0; i < sheets.length; i++) {
+            if (sheets[i].properties.title === sheetName) {
+                return sheets[i].properties.sheetId;
+            }
+        }
+        throw `Sheet ${sheetName} not found`;
+    });
+}
+    /**
  *
  * @param player
  * @returns {Promise<void>}
@@ -137,6 +179,13 @@ async function addPlayer(player) {
     await append('WeeklyPay!'+weeklyRange, [[domain]], VALUE_INPUT_OPTION.USER_ENTERED, INSERT_DATA_OPTIONS.INSERT_ROWS);
     await update('WeeklyPay!'+day+":"+day,[[dailyPayFormula]]);
     await update('WeeklyPay!'+week+":"+week,[[weeklyPayFormula]]);
+}
+
+async function removePlayer(sheetIdx) {
+    await removeRowOrColumn('DailyBet', 'COLUMNS', sheetIdx);
+    await removeRowOrColumn('DailyPay', 'COLUMNS', sheetIdx);
+    await removeRowOrColumn('WeeklyBet', 'ROWS', sheetIdx);
+    await removeRowOrColumn('WeeklyPay', 'ROWS', sheetIdx);
 }
 
 async function updateTotal(player) {
@@ -286,4 +335,7 @@ module.exports = {
     updatePlayerTotals,
     renewDay,
     chargeFee,
+    getSheetIdByName,
+    removeRowOrColumn,
+    removePlayer
 };

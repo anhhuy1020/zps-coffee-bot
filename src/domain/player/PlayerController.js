@@ -28,12 +28,48 @@ async function addPlayer(adminName, params){
         player = new Player({domain: domain, username: username, sheetIdx: admin.lastPlayerIdx});
         await player.save();
         await admin.save();
-        gsWorker.addPlayer(player);
+        await gsWorker.addPlayer(player);
         bot.notify(adminName + " vừa add player " + domain + "|" + username);
         return "Thêm người chơi " + name + " thành công";
     } catch (e) {
         bot.notify("Thêm người chơi thất bại " + e);
         return "Thêm người chơi thất bại";
+    }
+}
+
+async function removePlayer(adminName, params){
+    try {
+        params = params.replace(/ +/g, '').replace(/@/g, '').trim();
+        let name = params.toLowerCase();
+        let player = await Player.findOne({$or:[{domain: name},{username: name}]});
+        if (player == null) {
+            return "Người chơi " + name + " không tồn tại!";
+        }
+        if (player.total != 0) {
+            return "Người chơi " + name + " vẫn còn " + player.total + " ly cf!";
+        }
+        let admin = AdminController.getAdmin();
+        admin.lastPlayerIdx -= 1;
+        let players = await Player.find({sheetIdx: {$gt: player.sheetIdx}});
+        for (let i = 0; i < players.length; i++) {
+            players[i].sheetIdx -= 1;
+            players[i].save();
+        }
+
+        await player.deleteOne(function(err) {
+            if (err) {
+                console.error(`An error occurred: ${err.message}`);
+                return;
+            }
+            console.log(`Player ${name} has been deleted`);
+        });
+        await admin.save();
+        await gsWorker.removePlayer(player.sheetIdx);
+        bot.notify(adminName + " vừa remove player " + name);
+        return "Remove người chơi " + name + " thành công";
+    } catch (e) {
+        bot.notify("Remove người chơi thất bại " + e);
+        return "Remove người chơi thất bại";
     }
 }
 
@@ -83,6 +119,7 @@ async function unban(adminName, params) {
 
 module.exports = {
     addPlayer,
+    removePlayer,
     ban,
     unban
 }
