@@ -685,7 +685,8 @@ async function top(username, params){
         params = params || "";
         params = params.replace(/,+/g, ' ').replace(/ +/g, ' ').replace(/@/g, '').trim().toLowerCase();
         let split = params.split(' ');
-        let top = utils.clamp(top, -10, 10);
+        let top = utils.isInt(split[0])? split[0] - 0: 3;
+        top = utils.clamp(top, -10, 10);
 
         let order = top > 0? "desc": "asc";
         let property = split[1];
@@ -729,23 +730,24 @@ async function summon(username, params){
         console.log("today: " + today);
         let badPlayers = await Player.aggregate([
             // Lọc ra các phần tử có trường "total" nhỏ hơn 0 và lastPay lớn hơn today
-            { $match: { $and: [ { total: { $lt: 0 } },
-                        { $or: [ { lastPay: { $lt: today } }, { lastPay: { $exists: false } } ] }]} },
+            {$match: {
+                    $and: [
+                        {total: {$lt: 0}},
+                        // {$or: [{lastPay: {$lt: today}}, {lastPay: {$exists: false}}]}
+                    ]
+                }},
             // Thêm một trường mới là "payCoefficient" bằng giá trị "total" trừ "paid"
-            { $addFields: { payCoefficient: { $subtract: [ "$pay", "$paid" ] } } },
-            // Tính tổng của hai trường "payCoefficient" và "pay" thành một trường mới "aggressive"
-            { $addFields: { aggressive: { $add: [ "$total", "$payCoefficient" ] } } },
-            // Lọc ra các phần tử có trường "lastPay" không phải là hôm nay hoặc không có trường "lastPay"
+            {$addFields: {payCoefficient: {$subtract: ["$pay", {$divide: ["$paid", 2]}]}}}, // Tính tổng của hai trường "payCoefficient" và "pay" thành một trường mới "aggressive"
+            {$addFields: {aggressive: {$add: ["$total", {$divide: ["$payCoefficient", 2]}]}}}, // Lọc ra các phần tử có trường "lastPay" không phải là hôm nay hoặc không có trường "lastPay"
             // { $match: { lastPay: { $lt: today } } },
             // Sắp xếp các phần tử theo trường "aggressive" theo thứ tự tăng dần
-            { $sort: { aggressive: 1 } },
-            // Chỉ lấy ra limit phần tử đầu tiên trong danh sách được sắp xếp
-            { $limit: limit }
+            {$sort: {aggressive: 1}}, // Chỉ lấy ra limit phần tử đầu tiên trong danh sách được sắp xếp
+            {$limit: limit}
         ], function(err, result) {
             if (err) {
                 console.log(err);
             } else {
-                console.log(result);
+                // console.log(result);
             }
         });
         if (badPlayers == null || badPlayers.length <= 0){
