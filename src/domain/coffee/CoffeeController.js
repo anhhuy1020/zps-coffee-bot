@@ -739,7 +739,7 @@ async function summon(username, params){
             // Thêm một trường mới là "payCoefficient" bằng giá trị "total" trừ "paid"
             {$addFields: {payCoefficient: {$subtract: ["$pay", {$divide: ["$paid", 2]}]}}}, // Tính tổng của hai trường "payCoefficient" và "pay" thành một trường mới "aggressive"
             {$addFields: {aggressive: {$add: ["$total", {$divide: ["$payCoefficient", 2]}]}}}, // Lọc ra các phần tử có trường "lastPay" không phải là hôm nay hoặc không có trường "lastPay"
-            // { $match: { lastPay: { $lt: today } } },
+            {$match: { lastPay: { $lt: today } } },
             // Sắp xếp các phần tử theo trường "aggressive" theo thứ tự tăng dần
             {$sort: {aggressive: 1}}, // Chỉ lấy ra limit phần tử đầu tiên trong danh sách được sắp xếp
             {$limit: limit}

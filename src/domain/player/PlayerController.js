@@ -50,10 +50,11 @@ async function removePlayer(adminName, params){
         }
         let admin = AdminController.getAdmin();
         admin.lastPlayerIdx -= 1;
+        await admin.save();
         let players = await Player.find({sheetIdx: {$gt: player.sheetIdx}});
         for (let i = 0; i < players.length; i++) {
             players[i].sheetIdx -= 1;
-            players[i].save();
+            await players[i].save();
         }
 
         await player.deleteOne(function(err) {
