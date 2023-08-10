@@ -790,9 +790,9 @@ async function donate(username, params){
             return "...";
         }
 
-        if(player.total < 0){
-            return "Cảm ơn lòng tốt của @" + player.username + " nhưng bạn đang âm hãy gỡ trước đi 😑😑😑!";
-        }
+        // if(player.total < 0){
+        //     return "Cảm ơn lòng tốt của @" + player.username + " nhưng bạn đang âm hãy gỡ trước đi 😑😑😑!";
+        // }
 
         beneficiaryDomain = beneficiaryDomain.toLowerCase();
         let beneficiaryPlayer = await Player.findOne({domain: beneficiaryDomain});
