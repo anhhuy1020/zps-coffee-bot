@@ -636,10 +636,13 @@ async function check(username, params){
         if(player == null){
             return "Kiểm tra lại domain/username!";
         }
+        let totalPlay = player.win + player.lose;
+        let winrate = (totalPlay <= 0? 0: Math.floor(player.win/totalPlay*10000)/100) + '%';
         logger.info(username + " /check: " + params);
         return player.domain + ":"
             + "\n-Total: " + player.total
             + "\n-Hiệu số: " + (player.win - player.lose)
+            + "\n-Tỉ lệ thắng: " + winrate
             + "\n-Pay: " + (player.pay - player.paid)
             + "\n-Gift: " + (player.gift - player.gifted)
             ;
@@ -661,10 +664,13 @@ async function checkDetail(username, params){
         }
         let lastPay = player.lastPay <= 0? "-1": new Date(player.lastPay).toLocaleString();
 
+        let totalPlay = player.win + player.lose;
+        let winrate = (totalPlay <= 0? 0: Math.floor(player.win/totalPlay*10000)/100) + '%';
         logger.info(username + " /detail: " + params);
         return player.domain + ":"
             +"\n-Số trận thắng: " +  player.win
             +"\n-Số trận thua: " +  player.lose
+            +"\n-Tỉ lệ thắng: " +  winrate
             +"\n-Số lần pay: " +  player.pay
             +"\n-Số lần được pay: " + player.paid
             +"\n-Số lần gift: " +  player.gift
