@@ -7,7 +7,7 @@ const {sendMessage} = require("../telegraf_bot/TelegrafBot");
 const {isInt} = require("../../utils/Utils");
 const util = require("util");
 const {isSuperAdmin} = require("../admin/AdminController");
-
+const SORT_FUNC = require("./CoffeConst").SORT_FUNC;
 async function win(username, params) {
     try{
         let value = 1;
@@ -691,20 +691,20 @@ async function top(username, params){
         params = params || "";
         params = params.replace(/,+/g, ' ').replace(/ +/g, ' ').replace(/@/g, '').trim().toLowerCase();
         let split = params.split(' ');
-        let top = utils.isInt(split[0])? split[0] - 0: 3;
+        let top = utils.isInt(split[0])? split[0] - 0: 5;
         top = utils.clamp(top, -10, 10);
 
-        let order = top > 0? "desc": "asc";
         let property = split[1];
-        property = property && Player.schema.obj.hasOwnProperty(property)? property: 'total';
-        let topPlayers = await Player.find().sort({[property]: order}).limit(top);
-        if (topPlayers == null || topPlayers.length <= 0){
-            return;
+        property = resolveSortProperty(property);
+        let str;
+        if (typeof property === 'string') {
+            str = "Bảng phong thần phê thủ "  + property + (top > 0?"": " t̶ừ̶ ̶d̶ư̶ớ̶i̶ ̶l̶ê̶n̶" ) + ": \n"
+            str += await topByProperty(property, top);
+        } else {
+            str = "Bảng phong thần phê thủ "  + property + (top > 0?"": " t̶ừ̶ ̶d̶ư̶ớ̶i̶ ̶l̶ê̶n̶" ) + ": \n"
+            str += await topByFunc(property, top)
         }
-        let str = "Bảng phong thần phê thủ "  + property + (top > 0?"": " t̶ừ̶ ̶d̶ư̶ớ̶i̶ ̶l̶ê̶n̶" ) + ": \n";
-        for (let i = 0; i < topPlayers.length; i++) {
-            str += (i + 1) + ". " + topPlayers[i].username + " " + property + " " + topPlayers[i][property] +" ly\n" ;
-        }
+
         logger.info(username + " /top: " + params);
         return str;
 
@@ -712,6 +712,85 @@ async function top(username, params){
         logger.error("top exception: " +params+"|" + e );
         return "Something wrongs!";
     }
+}
+
+function resolveSortProperty(property) {
+    if (property == null) {
+        return 'total';
+    }
+
+    property = property.replaceAll(' ','').toLowerCase()
+    for (let i in SORT_FUNC) {
+        if (SORT_FUNC.hasOwnProperty(i)) {
+            let func = SORT_FUNC[i];
+            if (func['name'] === property) {
+                return func
+            }
+        }
+    }
+
+    if (Player.schema.obj.hasOwnProperty(property)) {
+        return property;
+    }
+
+    return 'total';
+}
+
+async function topByProperty(property, top) {
+    let order = top > 0? "desc": "asc";
+    top = Math.abs(top);
+    let topPlayers = await Player.find().sort({[property]: order}).limit(top);
+    if (topPlayers == null || topPlayers.length <= 0){
+        return;
+    }
+    let str = "";
+    for (let i = 0; i < topPlayers.length; i++) {
+        str += (i + 1) + ". " + topPlayers[i].username + " " + property + " " + topPlayers[i][property] +" ly\n" ;
+    }
+    return str;
+}
+
+async function topByFunc(func, top) {
+    let order = top > 0? 1: -1;
+    top = Math.abs(top);
+    console.log("topByFunc: " + JSON.stringify(func) + "|" + order + "|" + top);
+    let topPlayers = await Player.aggregate([
+        {
+            $project: {
+                uid: 1,
+                win: 1,
+                lose: 1,
+                aggressive: func['aggressive']
+            }
+        },
+        {
+            $sort: {aggressive: order}
+        },
+        {
+            $limit: top
+        }
+    ])
+        .exec((err, result) => {
+            if (err) {
+                console.error(err);
+                return;
+            }
+
+            console.log(result);
+        });
+
+    if (topPlayers == null || topPlayers.length <= 0) {
+        return;
+    }
+    let str = "";
+    for (let i = 0; i < topPlayers.length; i++) {
+        let aggressive = topPlayers[i].aggressive;
+        console.log("aggressive = " + aggressive);
+        console.log("func['formatFunc'] = " + func['formatFunc']);
+        aggressive = func['formatFunc']? func['formatFunc'](aggressive): aggressive;
+        str += (i + 1) + ". " + topPlayers[i].username + " " + func['desc'] + " " + aggressive + " ly\n";
+    }
+    return str;
 }
 
 async function summon(username, params){
