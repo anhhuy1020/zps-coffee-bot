@@ -696,17 +696,19 @@ async function top(username, params){
 
         let property = split[1];
         property = resolveSortProperty(property);
-        let str;
+        let result;
         if (typeof property === 'string') {
-            str = "Bảng phong thần phê thủ "  + property + (top > 0?"": " t̶ừ̶ ̶d̶ư̶ớ̶i̶ ̶l̶ê̶n̶" ) + ": \n"
-            str += await topByProperty(property, top);
+            result = await topByProperty(property, top);
         } else {
-            str = "Bảng phong thần phê thủ "  + property + (top > 0?"": " t̶ừ̶ ̶d̶ư̶ớ̶i̶ ̶l̶ê̶n̶" ) + ": \n"
-            str += await topByFunc(property, top)
+            result = await topByFunc(property, top)
+        }
+
+        if (result === '' || result== null) {
+            return "Fail!! Sai cú pháp";
         }
 
         logger.info(username + " /top: " + params);
-        return str;
+        return result;
 
     } catch (e) {
         logger.error("top exception: " +params+"|" + e );
@@ -743,7 +745,7 @@ async function topByProperty(property, top) {
     if (topPlayers == null || topPlayers.length <= 0){
         return;
     }
-    let str = "";
+    let str = "Bảng phong thần phê thủ "  + property + (top > 0?"": " t̶ừ̶ ̶d̶ư̶ớ̶i̶ ̶l̶ê̶n̶" ) + ": \n"
     for (let i = 0; i < topPlayers.length; i++) {
         str += (i + 1) + ". " + topPlayers[i].username + " " + property + " " + topPlayers[i][property] +" ly\n" ;
     }
@@ -751,17 +753,20 @@ async function topByProperty(property, top) {
 }
 
 async function topByFunc(func, top) {
-    let order = top > 0? 1: -1;
+    let order = top > 0? -1: 1;
     top = Math.abs(top);
-    console.log("topByFunc: " + JSON.stringify(func) + "|" + order + "|" + top);
     let topPlayers = await Player.aggregate([
         {
             $project: {
                 uid: 1,
+                username: 1,
                 win: 1,
                 lose: 1,
                 aggressive: func['aggressive']
             }
+        },
+        {
+            $match: func['match']? func['match']: {},
         },
         {
             $sort: {aggressive: order}
@@ -769,26 +774,22 @@ async function topByFunc(func, top) {
         {
             $limit: top
         }
-    ])
-        .exec((err, result) => {
-            if (err) {
-                console.error(err);
-                return;
-            }
-
-            console.log(result);
-        });
+    ], (err, result) => {
+        if (err) {
+            console.error(err);
+        }
+    });
+    console.log("topPlayers= " + JSON.stringify(topPlayers));
 
     if (topPlayers == null || topPlayers.length <= 0) {
         return;
     }
-    let str = "";
+    let str = "Bảng phong thần phê thủ "  + func['desc'] + (top > 0?"": " t̶ừ̶ ̶d̶ư̶ớ̶i̶ ̶l̶ê̶n̶" ) + ": \n"
     for (let i = 0; i < topPlayers.length; i++) {
-        let aggressive = topPlayers[i].aggressive;
-        console.log("aggressive = " + aggressive);
-        console.log("func['formatFunc'] = " + func['formatFunc']);
+        let player = topPlayers[i];
+        let aggressive = player.aggressive;
         aggressive = func['formatFunc']? func['formatFunc'](aggressive): aggressive;
-        str += (i + 1) + ". " + topPlayers[i].username + " " + func['desc'] + " " + aggressive + " ly\n";
+        str += (i + 1) + ". " + player.username + " " + func['desc'] + " " + aggressive + " \n";
     }
     return str;
 }
