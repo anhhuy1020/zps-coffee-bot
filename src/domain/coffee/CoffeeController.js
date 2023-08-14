@@ -476,8 +476,9 @@ async function renewDay() {
 
 async function clearWeek(){
     const cursor = Player.find().cursor();
-
     for (let player = await cursor.next(); player != null; player = await cursor.next()) {
+        player.lastWeekWin = player.weeklyWin;
+        player.lastWeekLose = player.weeklyLose;
         player.weeklyWin = 0;
         player.weeklyLose = 0;
         player.weeklyPay = 0;
@@ -601,6 +602,8 @@ async function reset(username) {
 
         for (let i = 0; i< players.length; i++) {
             let player = players[i];
+            player.lastWeekWin = player.weeklyWin;
+            player.lastWeekLose = player.weeklyLose;
             player.weeklyWin = 0;
             player.weeklyLose = 0;
             player.weeklyPay = 0;
@@ -907,9 +910,14 @@ async function donate(username, params){
 
 async function doSomething(username, params){
     try{
-        let split = params.split(" ");
-        await googleSheetWorker.removeRowOrColumn(split[0], split[1], split[2])
-        return "success";
+        await Player.updateMany({}, { $set: { lastWeekWin: 0, lastWeekLose: 0 } })
+            .then((result) => {
+                console.log('Update successful:', result);
+            })
+            .catch((error) => {
+                console.error('Error updating records:', error);
+            });
+        return "thanh cong";
     } catch (e) {
         logger.error("checkDetail exception: " + e);
         return "Something wrongs!";

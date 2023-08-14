@@ -7,6 +7,8 @@ let Player = {
     sheetIdx: { type: Number, unique: true, required: true },
     win: { type: Number, required: false , default: 0},
     lose: { type: Number, required: false , default: 0},
+    lastWeekWin: { type: Number, required: false , default: 0},
+    lastWeekLose: { type: Number, required: false , default: 0},
     weeklyWin: { type: Number, required: false , default: 0},
     weeklyLose: { type: Number, required: false , default: 0},
     pay: { type: Number, required: false , default: 0},

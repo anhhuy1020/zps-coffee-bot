@@ -6,8 +6,8 @@ module.exports = {
             desc: "tỉ lệ thắng",
             match: {
                 $or: [
-                    {win: {$gt: 0}},
-                    {lose: {$gt: 0}},
+                    {win: {$gt: 10}},
+                    {lose: {$gt: 10}},
                 ]
             },
             aggressive: { $divide: ['$win', { $add: ['$win', '$lose'] }] },
